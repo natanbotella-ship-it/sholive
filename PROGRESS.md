@@ -9,7 +9,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 04 — Onboarding profil marchand
 - [x] Bloc 05 — Onboarding profil créateur
 - [x] Bloc 06 — Création de challenge (sans paiement)
-- [ ] Bloc 07 — Stripe Checkout : paiement du prize pool
+- [~] Bloc 07 — Stripe Checkout : paiement du prize pool (code complet, Checkout Session non testée en vrai — clé Stripe manquante)
 - [ ] Bloc 08 — Liste publique des challenges
 - [ ] Bloc 09 — Page détail challenge
 - [ ] Bloc 10 — Soumission créateur
@@ -69,3 +69,10 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/merchant/challenges/new` (titre, description, brief structuré en textarea une ligne = un item, prize_pool, répartition 3 champs avec bornes, submission_deadline) — redirige vers l'onboarding si le profil pro n'existe pas encore
   - `vote_deadline` calculée par la Server Action (submission_deadline + 7 jours), pas un champ du formulaire
   - Testé avec un vrai compte marchand sous RLS : insert OK (status `draft`/`unpaid` par défaut), `vote_deadline` vérifiée exactement +7 jours, contrainte DB `prize_pool >= 200` confirmée comme filet de sécurité même si Zod était contourné, brouillon bien invisible en lecture anonyme
+
+- 2026-07-03 : Bloc 07 (Stripe Checkout) codé mais **partiellement testé** — décision explicite avec Natan de coder sans les clés Stripe réelles, à compléter plus tard.
+  - Bouton "Payer et lancer le challenge" ajouté à l'écran de succès du Bloc 06 (pas de nouvelle page dashboard). Server Action `createCheckoutSessionAction` crée la Checkout Session (prize_pool complet, pas de split de commission à ce stade), stocke `stripe_checkout_session_id`, passe `status` à `awaiting_payment`
+  - Route `/api/webhooks/stripe` (Route Handler, exception aux Server Actions) : vérifie la signature, `checkout.session.completed` → `payment_status` = `paid`, `status` = `active`, via service role
+  - **Testé** : le webhook en entier, avec un événement signé localement (`STRIPE_WEBHOOK_SECRET` généré temporairement, aucun appel réseau à Stripe nécessaire pour la vérification de signature) — signature valide → statut mis à jour correctement ; signature invalide → rejeté (400)
+  - **Non testé** : la création réelle de la Checkout Session (`stripe.checkout.sessions.create`), qui nécessite un vrai `STRIPE_SECRET_KEY` — actuellement vide dans `.env.local`. À vérifier dès que Natan fournit une clé de test
+  - `STRIPE_WEBHOOK_SECRET` actuel est une valeur temporaire générée localement pour les tests — À REMPLACER par le vrai "Signing secret" une fois l'endpoint configuré dans le dashboard Stripe (sinon les vrais webhooks Stripe seront rejetés)

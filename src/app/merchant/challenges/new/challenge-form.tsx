@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from "react-dom";
 import { createChallengeAction, type CreateChallengeState } from "./actions";
+import { PayButton } from "./pay-button";
 
 const initialState: CreateChallengeState = {};
 
@@ -21,12 +22,15 @@ function SubmitButton() {
 export function ChallengeForm() {
   const [state, formAction] = useFormState(createChallengeAction, initialState);
 
-  if (state.success) {
+  if (state.success && state.challengeId) {
     return (
-      <p className="max-w-lg text-sm">
-        Challenge créé en brouillon (id : {state.challengeId}). Le paiement du
-        prize pool (Bloc 07) reste à faire pour l&apos;activer.
-      </p>
+      <div className="flex max-w-lg flex-col gap-4">
+        <p className="text-sm">
+          Challenge créé en brouillon (id : {state.challengeId}). Paie le
+          prize pool pour l&apos;activer et le rendre visible aux créateurs.
+        </p>
+        <PayButton challengeId={state.challengeId} />
+      </div>
     );
   }
 

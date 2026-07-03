@@ -1,0 +1,82 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { stripe } from "@/lib/stripe";
+
+export type CheckoutState = {
+  error?: string;
+};
+
+export async function createCheckoutSessionAction(
+  _prevState: CheckoutState,
+  formData: FormData,
+): Promise<CheckoutState> {
+  const challengeId = formData.get("challengeId");
+  if (typeof challengeId !== "string" || !challengeId) {
+    return { error: "Challenge introuvable" };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.user_metadata?.role !== "merchant") {
+    return { error: "Accès réservé aux comptes pro" };
+  }
+
+  // RLS restreint deja cette lecture au merchant proprietaire : si la row
+  // revient, le challenge lui appartient forcement.
+  const { data: challenge, error: fetchError } = await supabase
+    .from("challenges")
+    .select("id, title, prize_pool, status")
+    .eq("id", challengeId)
+    .single();
+
+  if (fetchError || !challenge) {
+    return { error: "Challenge introuvable" };
+  }
+
+  if (challenge.status !== "draft") {
+    return { error: "Ce challenge n'est plus en brouillon" };
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            unit_amount: Math.round(challenge.prize_pool * 100),
+            product_data: { name: `Prize pool — ${challenge.title}` },
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${siteUrl}/merchant/dashboard?checkout=success`,
+      cancel_url: `${siteUrl}/merchant/dashboard?checkout=cancelled`,
+      metadata: { challenge_id: challenge.id },
+    });
+  } catch {
+    return { error: "Impossible de créer la session de paiement Stripe" };
+  }
+
+  if (!session.url) {
+    return { error: "Impossible de créer la session de paiement" };
+  }
+
+  await supabase
+    .from("challenges")
+    .update({
+      stripe_checkout_session_id: session.id,
+      status: "awaiting_payment",
+    })
+    .eq("id", challengeId);
+
+  redirect(session.url);
+}

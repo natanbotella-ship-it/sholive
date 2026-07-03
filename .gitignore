@@ -1,0 +1,24 @@
+# Next.js
+/.next/
+/out/
+
+# Dependencies
+/node_modules/
+
+# Env — jamais commité, contient les clés Stripe/Supabase
+.env
+.env.local
+.env*.local
+
+# Build
+/build
+*.tsbuildinfo
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+.vercel
+
+# Claude Code — settings locaux, pas partagés
+.claude/settings.local.json

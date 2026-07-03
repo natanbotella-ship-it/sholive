@@ -12,7 +12,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [~] Bloc 07 — Stripe Checkout : paiement du prize pool (code complet, Checkout Session non testée en vrai — clé Stripe manquante)
 - [x] Bloc 08 — Liste publique des challenges
 - [x] Bloc 09 — Page détail challenge
-- [ ] Bloc 10 — Soumission créateur
+- [x] Bloc 10 — Soumission créateur
 - [ ] Bloc 11 — Stripe Connect : onboarding créateur
 - [ ] Bloc 12 — Dashboard pro : suivi challenge
 - [ ] Bloc 13 — Vote pro sur shortlist
@@ -86,3 +86,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/challenges/[id]` : brief complet, prize pool, répartition, deadlines, nombre de soumissions, bouton "Participer" (vers `/creator/submit/[id]`, Bloc 10) visible seulement si connecté creator ET deadline non dépassée
   - Testé contre le serveur dev réel : contenu complet affiché, compteur de soumissions à jour après ajout, bouton correctement absent (anonyme / merchant / deadline passée) et présent (creator + deadline future), 404 sur un id inexistant
   - Note test : deux faux négatifs initiaux dus aux marqueurs `<!-- -->` que React insère en SSR entre nœuds JSX adjacents — vérifiés manuellement sur le HTML brut, aucun vrai bug
+
+- 2026-07-03 : Bloc 10 (soumission créateur) terminé.
+  - Page `/creator/submit/[id]` : TikTok + Reels obligatoires, Shorts optionnel, stats déclarées. Bloque si deadline dépassée ou soumission déjà existante, redirige vers l'onboarding si profil créateur manquant
+  - Validation des domaines par URL réelle (`new URL().hostname`/`.pathname`, pas de regex fragile) — `src/lib/xp.ts` créé pour `levelForXp`, réutilisé par avance pour le Bloc 14 (mêmes paliers)
+  - Testé : 14 cas de validation de domaine (TikTok/Reels/Shorts, y compris tentatives de contournement type `eviltiktok.com.fake`) tous corrects ; insert sous RLS OK ; franchissement de palier XP vérifié (95→105 = Débutant→Montant) ; doublon de soumission rejeté ; lecture publique OK ; page affiche bien "déjà soumis" après coup

@@ -4,7 +4,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 
 - [x] Bloc 00 — Setup projet
 - [x] Bloc 01 — Base de données
-- [ ] Bloc 02 — Inscription (auth)
+- [x] Bloc 02 — Inscription (auth)
 - [ ] Bloc 03 — Connexion + protection de routes
 - [ ] Bloc 04 — Onboarding profil marchand
 - [ ] Bloc 05 — Onboarding profil créateur
@@ -42,3 +42,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - `.env.local.example` créé (committé) ; `.env.local` réel rempli et testé (requête REST authentifiée en service role → 200)
   - Projet Supabase "Sholive" créé (région Paris), `schema.sql` exécuté, 8 tables confirmées avec RLS actif via le MCP Supabase (`list_tables`)
   - `npm run dev` vérifié (HTTP 200, page de test "Sholive / Setup Bloc 00 — OK" rendue avec Tailwind + Inter)
+
+- 2026-07-03 : Bloc 02 (inscription) terminé.
+  - Page `/register` (formulaire client + Server Action `registerAction`, validation Zod, checkbox 18+ conditionnelle si role=creator)
+  - Testé de bout en bout via l'API admin Supabase (contourne le rate limit email du plan gratuit) : trigger `handle_new_user` confirmé, `role`/`age_confirmed_at` corrects pour creator et merchant, comptes de test supprimés ensuite
+  - Rate limit d'envoi d'email très bas sur le plan gratuit Supabase (quelques emails/heure) — à garder en tête pour les tests manuels réels, pas bloquant pour le MVP mais à surveiller si beaucoup d'inscriptions test

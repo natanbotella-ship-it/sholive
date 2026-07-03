@@ -10,7 +10,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 05 — Onboarding profil créateur
 - [x] Bloc 06 — Création de challenge (sans paiement)
 - [~] Bloc 07 — Stripe Checkout : paiement du prize pool (code complet, Checkout Session non testée en vrai — clé Stripe manquante)
-- [ ] Bloc 08 — Liste publique des challenges
+- [x] Bloc 08 — Liste publique des challenges
 - [ ] Bloc 09 — Page détail challenge
 - [ ] Bloc 10 — Soumission créateur
 - [ ] Bloc 11 — Stripe Connect : onboarding créateur
@@ -76,3 +76,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - **Testé** : le webhook en entier, avec un événement signé localement (`STRIPE_WEBHOOK_SECRET` généré temporairement, aucun appel réseau à Stripe nécessaire pour la vérification de signature) — signature valide → statut mis à jour correctement ; signature invalide → rejeté (400)
   - **Non testé** : la création réelle de la Checkout Session (`stripe.checkout.sessions.create`), qui nécessite un vrai `STRIPE_SECRET_KEY` — actuellement vide dans `.env.local`. À vérifier dès que Natan fournit une clé de test
   - `STRIPE_WEBHOOK_SECRET` actuel est une valeur temporaire générée localement pour les tests — À REMPLACER par le vrai "Signing secret" une fois l'endpoint configuré dans le dashboard Stripe (sinon les vrais webhooks Stripe seront rejetés)
+
+- 2026-07-03 : Bloc 08 (liste publique des challenges) terminé.
+  - Avant d'écrire la requête à jointure, génération des types TypeScript Supabase (`src/lib/supabase/database.types.ts`, via MCP) et branchement sur les 3 clients (browser/server/admin) — jusqu'ici les requêtes Supabase n'étaient pas vraiment typées, ce qui violait la règle "TypeScript strict, pas de `any`" de `CLAUDE.md`. Aucune erreur de type révélée sur le code existant
+  - Page `/challenges` : filtre `status = active` ET `submission_deadline > now()`, jointure `merchant_profiles!inner` pour `business_name`/`city`, filtre ville par query param (générique, une seule option "Lyon" pour l'instant)
+  - Testé contre le serveur dev réel : challenge actif+futur affiché, challenge actif mais deadline passée masqué, brouillon masqué, filtre ville Paris/Lyon fonctionne correctement

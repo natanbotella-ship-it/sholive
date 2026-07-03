@@ -6,7 +6,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 01 — Base de données
 - [x] Bloc 02 — Inscription (auth)
 - [x] Bloc 03 — Connexion + protection de routes
-- [ ] Bloc 04 — Onboarding profil marchand
+- [x] Bloc 04 — Onboarding profil marchand
 - [ ] Bloc 05 — Onboarding profil créateur
 - [ ] Bloc 06 — Création de challenge (sans paiement)
 - [ ] Bloc 07 — Stripe Checkout : paiement du prize pool
@@ -54,3 +54,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Nouvelle variable d'env `NEXT_PUBLIC_SITE_URL` (redirections email)
   - Dashboards placeholder `/creator/dashboard` et `/merchant/dashboard` (vraies pages aux blocs 12/17)
   - Testé sans navigateur headless (Playwright non installé, pas ajouté pour un seul test) : script Node utilisant directement `@supabase/ssr` pour générer un vrai cookie de session, envoyé en HTTP brut vers les routes protégées. 5 scénarios validés : mauvais mot de passe rejeté, creator/merchant accèdent à leur dashboard, redirection correcte si mauvaise section, non connecté → `/login`
+
+- 2026-07-03 : Bloc 04 (onboarding profil marchand) terminé.
+  - Page `/merchant/onboarding` (business_name, city par défaut Lyon, phone) — Server Action écrit dans `merchant_profiles` puis `merchant_contacts`, sous RLS standard (pas de service role nécessaire, la policy owner suffit)
+  - Page redirige vers `/merchant/dashboard` si le profil existe déjà (évite l'erreur de doublon en resoumettant le formulaire)
+  - Testé avec un compte marchand réel sous RLS (pas service role) : insert profil + contact OK, doublon correctement rejeté (contrainte unique), lecture anonyme de `merchant_contacts` vide (téléphone bien privé)

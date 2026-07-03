@@ -5,7 +5,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 00 — Setup projet
 - [x] Bloc 01 — Base de données
 - [x] Bloc 02 — Inscription (auth)
-- [ ] Bloc 03 — Connexion + protection de routes
+- [x] Bloc 03 — Connexion + protection de routes
 - [ ] Bloc 04 — Onboarding profil marchand
 - [ ] Bloc 05 — Onboarding profil créateur
 - [ ] Bloc 06 — Création de challenge (sans paiement)
@@ -47,3 +47,10 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/register` (formulaire client + Server Action `registerAction`, validation Zod, checkbox 18+ conditionnelle si role=creator)
   - Testé de bout en bout via l'API admin Supabase (contourne le rate limit email du plan gratuit) : trigger `handle_new_user` confirmé, `role`/`age_confirmed_at` corrects pour creator et merchant, comptes de test supprimés ensuite
   - Rate limit d'envoi d'email très bas sur le plan gratuit Supabase (quelques emails/heure) — à garder en tête pour les tests manuels réels, pas bloquant pour le MVP mais à surveiller si beaucoup d'inscriptions test
+
+- 2026-07-03 : Bloc 03 (connexion + protection de routes) terminé.
+  - Pages `/login`, `/forgot-password`, `/reset-password` + `src/middleware.ts` (protège `/creator/*` et `/merchant/*` selon le rôle en session)
+  - Ajout non prévu dans le bloc mais nécessaire : route `src/app/auth/confirm/route.ts` (Route Handler) pour échanger le code du lien "mot de passe oublié" contre une session — un Server Component ne peut pas écrire de cookies, donc l'échange devait passer par un Route Handler, pas directement sur la page `/reset-password`
+  - Nouvelle variable d'env `NEXT_PUBLIC_SITE_URL` (redirections email)
+  - Dashboards placeholder `/creator/dashboard` et `/merchant/dashboard` (vraies pages aux blocs 12/17)
+  - Testé sans navigateur headless (Playwright non installé, pas ajouté pour un seul test) : script Node utilisant directement `@supabase/ssr` pour générer un vrai cookie de session, envoyé en HTTP brut vers les routes protégées. 5 scénarios validés : mauvais mot de passe rejeté, creator/merchant accèdent à leur dashboard, redirection correcte si mauvaise section, non connecté → `/login`

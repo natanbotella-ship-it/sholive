@@ -8,7 +8,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 03 — Connexion + protection de routes
 - [x] Bloc 04 — Onboarding profil marchand
 - [x] Bloc 05 — Onboarding profil créateur
-- [ ] Bloc 06 — Création de challenge (sans paiement)
+- [x] Bloc 06 — Création de challenge (sans paiement)
 - [ ] Bloc 07 — Stripe Checkout : paiement du prize pool
 - [ ] Bloc 08 — Liste publique des challenges
 - [ ] Bloc 09 — Page détail challenge
@@ -64,3 +64,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Bucket Storage `avatars` créé via migration MCP (public en lecture, 5 Mo max, png/jpeg/webp/gif uniquement), policies RLS sur `storage.objects` : écriture restreinte à `{user_id}/...`, dupliqué dans `schema.sql` pour traçabilité
   - Page `/creator/onboarding` (username + avatar optionnel) — Server Action upload vers Storage puis crée `creator_profiles`, sous RLS standard
   - Testé avec un vrai compte créateur (pas service role) : upload avatar OK, lecture publique de l'avatar OK (HTTP 200), upload dans le dossier d'un autre user rejeté par RLS, username non-minuscule rejeté par la contrainte DB
+
+- 2026-07-03 : Bloc 06 (création de challenge sans paiement) terminé.
+  - Page `/merchant/challenges/new` (titre, description, brief structuré en textarea une ligne = un item, prize_pool, répartition 3 champs avec bornes, submission_deadline) — redirige vers l'onboarding si le profil pro n'existe pas encore
+  - `vote_deadline` calculée par la Server Action (submission_deadline + 7 jours), pas un champ du formulaire
+  - Testé avec un vrai compte marchand sous RLS : insert OK (status `draft`/`unpaid` par défaut), `vote_deadline` vérifiée exactement +7 jours, contrainte DB `prize_pool >= 200` confirmée comme filet de sécurité même si Zod était contourné, brouillon bien invisible en lecture anonyme

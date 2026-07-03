@@ -10,6 +10,9 @@ export default function MerchantDashboardPage() {
       <Link href="/merchant/onboarding" className="text-sm text-primary underline">
         Compléter mon profil pro
       </Link>
+      <Link href="/merchant/challenges/new" className="text-sm text-primary underline">
+        Créer un challenge
+      </Link>
     </main>
   );
 }

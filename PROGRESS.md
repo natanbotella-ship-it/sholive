@@ -13,7 +13,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 08 — Liste publique des challenges
 - [x] Bloc 09 — Page détail challenge
 - [x] Bloc 10 — Soumission créateur
-- [ ] Bloc 11 — Stripe Connect : onboarding créateur
+- [~] Bloc 11 — Stripe Connect : onboarding créateur (code complet, création de compte Connect réelle non testée — clé Stripe manquante)
 - [ ] Bloc 12 — Dashboard pro : suivi challenge
 - [ ] Bloc 13 — Vote pro sur shortlist
 - [ ] Bloc 14 — Scoring et calcul final
@@ -91,3 +91,10 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/creator/submit/[id]` : TikTok + Reels obligatoires, Shorts optionnel, stats déclarées. Bloque si deadline dépassée ou soumission déjà existante, redirige vers l'onboarding si profil créateur manquant
   - Validation des domaines par URL réelle (`new URL().hostname`/`.pathname`, pas de regex fragile) — `src/lib/xp.ts` créé pour `levelForXp`, réutilisé par avance pour le Bloc 14 (mêmes paliers)
   - Testé : 14 cas de validation de domaine (TikTok/Reels/Shorts, y compris tentatives de contournement type `eviltiktok.com.fake`) tous corrects ; insert sous RLS OK ; franchissement de palier XP vérifié (95→105 = Débutant→Montant) ; doublon de soumission rejeté ; lecture publique OK ; page affiche bien "déjà soumis" après coup
+
+- 2026-07-04 : Bloc 11 (Stripe Connect onboarding créateur) codé, **partiellement testé** — même limitation que le Bloc 07, `STRIPE_SECRET_KEY` toujours vide.
+  - Page `/creator/payments` (statut onboarding + bouton "Activer mes paiements") ; Server Action `createConnectAccountAction` crée le compte Connect Express (réutilise `stripe_account_id` existant), génère un Account Link, redirige vers le formulaire hébergé Stripe
+  - Webhook `/api/webhooks/stripe` : ajout du cas `account.updated` — dérive le nouveau statut (`complete` si `details_submitted && charges_enabled`, `restricted` si `requirements.disabled_reason`, sinon `pending`), met à jour `creator_profiles` via service role. Si le nouveau statut est `complete`, cherche les `payouts` `awaiting_onboarding` de ce créateur et déclenche leur Transfer Stripe
+  - Pas de try/catch autour de `stripe.transfers.create` : une levée d'exception fait échouer le webhook (500), ce qui déclenche le retry automatique de Stripe — la requête `awaiting_onboarding` étant relue à chaque appel, un retry ne retente que les payouts encore non résolus (idempotent par construction), sans logique de retry custom à maintenir
+  - **Testé** (dev server + script Node éphémère, cookie de session réel généré via `@supabase/ssr`, événements `account.updated` signés localement via `stripe.webhooks.generateTestHeaderString`, aucun appel réseau Stripe) : page conforme aux 4 statuts + bouton absent seulement si `complete` ; redirection vers l'onboarding si profil manquant ; signature invalide rejetée (400) ; transitions `pending`/`restricted`/`complete` appliquées correctement ; scénario payout en attente + passage à `complete` — le webhook échoue bien (500, `transfers.create` sans clé réelle) mais **sans corruption d'état** : `creator_profiles.stripe_onboarding_status` mis à jour à `complete` malgré l'échec en aval, payout resté proprement `awaiting_onboarding` (jamais marqué `pending` à tort)
+  - **Non testé** : la création réelle de compte Connect Express et l'exécution réelle d'un Transfer, qui nécessitent un vrai `STRIPE_SECRET_KEY` — à vérifier dès que Natan fournit une clé de test

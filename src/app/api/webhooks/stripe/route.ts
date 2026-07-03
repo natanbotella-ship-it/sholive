@@ -37,5 +37,53 @@ export async function POST(request: Request) {
     }
   }
 
+  if (event.type === "account.updated") {
+    const account = event.data.object as Stripe.Account;
+
+    const newStatus =
+      account.details_submitted && account.charges_enabled
+        ? "complete"
+        : account.requirements?.disabled_reason
+          ? "restricted"
+          : "pending";
+
+    const supabase = createAdminClient();
+    const { data: creatorProfile } = await supabase
+      .from("creator_profiles")
+      .select("id")
+      .eq("stripe_account_id", account.id)
+      .maybeSingle();
+
+    if (creatorProfile) {
+      await supabase
+        .from("creator_profiles")
+        .update({ stripe_onboarding_status: newStatus })
+        .eq("id", creatorProfile.id);
+
+      // Reprise des payouts restés en attente d'onboarding : c'est le seul mécanisme
+      // qui débloque un payout resté `awaiting_onboarding` après `results_finalized` (bloc 15).
+      if (newStatus === "complete") {
+        const { data: pendingPayouts } = await supabase
+          .from("payouts")
+          .select("id, amount")
+          .eq("creator_id", creatorProfile.id)
+          .eq("status", "awaiting_onboarding");
+
+        for (const payout of pendingPayouts ?? []) {
+          const transfer = await stripe.transfers.create({
+            amount: Math.round(Number(payout.amount) * 100),
+            currency: "eur",
+            destination: account.id,
+          });
+
+          await supabase
+            .from("payouts")
+            .update({ status: "pending", stripe_transfer_id: transfer.id })
+            .eq("id", payout.id);
+        }
+      }
+    }
+  }
+
   return NextResponse.json({ received: true });
 }

@@ -13,6 +13,8 @@
 # Build
 /build
 *.tsbuildinfo
+next-env.d.ts
+/coverage
 
 # Misc
 .DS_Store

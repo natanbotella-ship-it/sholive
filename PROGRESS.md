@@ -2,8 +2,8 @@
 
 Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une ligne de note si pertinent). Au début de chaque nouvelle session, lis ce fichier avant de commencer.
 
-- [ ] Bloc 00 — Setup projet
-- [ ] Bloc 01 — Base de données
+- [x] Bloc 00 — Setup projet
+- [x] Bloc 01 — Base de données
 - [ ] Bloc 02 — Inscription (auth)
 - [ ] Bloc 03 — Connexion + protection de routes
 - [ ] Bloc 04 — Onboarding profil marchand
@@ -30,6 +30,15 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Payout `awaiting_onboarding` après `results_finalized` : repris automatiquement par le webhook `account.updated` (bloc 11)
   - XP vainqueur : +150 cumulé (+50 top 3 et +100 victoire)
   - Seuil de validité du challenge : remplacé "< 5 soumissions → remboursement partiel" par "< 10 soumissions → remboursement intégral" (inscription = soumission, pas de flow séparé)
-  - `vote_deadline` devient une colonne générée (submission_deadline + 7j), plus un champ de formulaire
+  - `vote_deadline` : calculée par la Server Action (submission_deadline + 7j), plus un champ de formulaire — tentative initiale en colonne générée DB abandonnée (`timestamptz + interval` non IMMUTABLE en Postgres, erreur 42P17 à l'exécution du schéma)
   - Ajout table `merchant_contacts` (téléphone) + policies `profiles`/`merchant_profiles` resserrées : email et téléphone n'étaient pas censés être publics avec les policies RLS d'origine
   - Détail complet des autres corrections (statuts orphelins, RLS payouts, forward reference metric_score bloc13/14, etc.) dans l'historique de conversation Claude Code du 2026-07-03
+
+- 2026-07-03 : Bloc 00 (setup) + Bloc 01 (DB) terminés.
+  - Next.js 14.2.35 (pas `@latest` — aurait installé Next 16 + Tailwind v4, hors stack imposée), TypeScript, Tailwind 3.4.1, App Router, `src/`
+  - Police Inter (next/font/google) à la place de Geist par défaut ; couleur `primary` `#7C3AED` ajoutée à `tailwind.config.ts`
+  - Clients Supabase créés : `src/lib/supabase/client.ts` (browser), `server.ts` (SSR, cookies via next/headers), `admin.ts` (service role, usage serveur uniquement)
+  - `@supabase/ssr` et `@supabase/supabase-js` ajoutés aux dépendances (non listées telles quelles dans CLAUDE.md mais requises par le stack Supabase imposé — signalé ici comme demandé)
+  - `.env.local.example` créé (committé) ; `.env.local` réel rempli et testé (requête REST authentifiée en service role → 200)
+  - Projet Supabase "Sholive" créé (région Paris), `schema.sql` exécuté, 8 tables confirmées avec RLS actif via le MCP Supabase (`list_tables`)
+  - `npm run dev` vérifié (HTTP 200, page de test "Sholive / Setup Bloc 00 — OK" rendue avec Tailwind + Inter)

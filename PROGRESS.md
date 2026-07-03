@@ -7,7 +7,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 02 — Inscription (auth)
 - [x] Bloc 03 — Connexion + protection de routes
 - [x] Bloc 04 — Onboarding profil marchand
-- [ ] Bloc 05 — Onboarding profil créateur
+- [x] Bloc 05 — Onboarding profil créateur
 - [ ] Bloc 06 — Création de challenge (sans paiement)
 - [ ] Bloc 07 — Stripe Checkout : paiement du prize pool
 - [ ] Bloc 08 — Liste publique des challenges
@@ -59,3 +59,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/merchant/onboarding` (business_name, city par défaut Lyon, phone) — Server Action écrit dans `merchant_profiles` puis `merchant_contacts`, sous RLS standard (pas de service role nécessaire, la policy owner suffit)
   - Page redirige vers `/merchant/dashboard` si le profil existe déjà (évite l'erreur de doublon en resoumettant le formulaire)
   - Testé avec un compte marchand réel sous RLS (pas service role) : insert profil + contact OK, doublon correctement rejeté (contrainte unique), lecture anonyme de `merchant_contacts` vide (téléphone bien privé)
+
+- 2026-07-03 : Bloc 05 (onboarding profil créateur) terminé.
+  - Bucket Storage `avatars` créé via migration MCP (public en lecture, 5 Mo max, png/jpeg/webp/gif uniquement), policies RLS sur `storage.objects` : écriture restreinte à `{user_id}/...`, dupliqué dans `schema.sql` pour traçabilité
+  - Page `/creator/onboarding` (username + avatar optionnel) — Server Action upload vers Storage puis crée `creator_profiles`, sous RLS standard
+  - Testé avec un vrai compte créateur (pas service role) : upload avatar OK, lecture publique de l'avatar OK (HTTP 200), upload dans le dossier d'un autre user rejeté par RLS, username non-minuscule rejeté par la contrainte DB

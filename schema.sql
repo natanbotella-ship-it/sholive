@@ -194,6 +194,32 @@ create policy "payouts visibles par leur créateur" on payouts for select
 -- webhooks bloc 11/transfer) sont des écritures cross-user privilégiées, faites exclusivement via le
 -- client Supabase service role côté serveur, jamais par un client authentifié classique.
 
+-- Storage : bucket avatars créateurs (bloc 05). Public en lecture, écriture restreinte à
+-- {user_id}/... via le premier segment du chemin. Appliqué le 2026-07-03 via migration MCP
+-- "create_avatars_bucket" — reproduit ici pour que schema.sql reste la source de vérité complète.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 5242880, array['image/png','image/jpeg','image/webp','image/gif'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+create policy "avatars publiquement lisibles"
+on storage.objects for select
+using (bucket_id = 'avatars');
+
+create policy "un creator peut uploader son propre avatar"
+on storage.objects for insert
+with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "un creator peut modifier son propre avatar"
+on storage.objects for update
+using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "un creator peut supprimer son propre avatar"
+on storage.objects for delete
+using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+
 -- Index utiles
 create index on submissions (challenge_id);
 create index on submissions (challenge_id, rank);

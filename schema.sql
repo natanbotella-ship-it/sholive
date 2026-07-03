@@ -111,7 +111,11 @@ create table challenges (
   stripe_checkout_session_id text,
   payment_status text not null default 'unpaid' check (payment_status in ('unpaid','paid','refunded')),
   submission_deadline timestamptz not null,
-  vote_deadline timestamptz generated always as (submission_deadline + interval '7 days') stored, -- J+7 forcé, non éditable par le pro
+  -- J+7 forcé : toujours = submission_deadline + 7 jours, calculée par la Server Action (bloc 06) et
+  -- insérée telle quelle, jamais un champ libre du formulaire. Pas de colonne générée en DB : l'opérateur
+  -- timestamptz + interval n'est pas IMMUTABLE en Postgres (dépend du TimeZone de session), donc rejeté
+  -- par "generated always as" (erreur 42P17).
+  vote_deadline timestamptz not null,
   created_at timestamptz not null default now()
 );
 

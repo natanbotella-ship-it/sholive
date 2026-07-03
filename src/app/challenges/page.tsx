@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ChallengesPage({
@@ -55,7 +56,12 @@ export default async function ChallengesPage({
               key={challenge.id}
               className="flex flex-col gap-1 rounded-md border p-4"
             >
-              <span className="font-semibold">{challenge.title}</span>
+              <Link
+                href={`/challenges/${challenge.id}`}
+                className="font-semibold text-primary underline"
+              >
+                {challenge.title}
+              </Link>
               <span className="text-sm text-foreground/60">
                 {challenge.merchant_profiles.business_name} —{" "}
                 {challenge.merchant_profiles.city}

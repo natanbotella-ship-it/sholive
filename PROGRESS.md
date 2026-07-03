@@ -11,7 +11,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 06 — Création de challenge (sans paiement)
 - [~] Bloc 07 — Stripe Checkout : paiement du prize pool (code complet, Checkout Session non testée en vrai — clé Stripe manquante)
 - [x] Bloc 08 — Liste publique des challenges
-- [ ] Bloc 09 — Page détail challenge
+- [x] Bloc 09 — Page détail challenge
 - [ ] Bloc 10 — Soumission créateur
 - [ ] Bloc 11 — Stripe Connect : onboarding créateur
 - [ ] Bloc 12 — Dashboard pro : suivi challenge
@@ -81,3 +81,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Avant d'écrire la requête à jointure, génération des types TypeScript Supabase (`src/lib/supabase/database.types.ts`, via MCP) et branchement sur les 3 clients (browser/server/admin) — jusqu'ici les requêtes Supabase n'étaient pas vraiment typées, ce qui violait la règle "TypeScript strict, pas de `any`" de `CLAUDE.md`. Aucune erreur de type révélée sur le code existant
   - Page `/challenges` : filtre `status = active` ET `submission_deadline > now()`, jointure `merchant_profiles!inner` pour `business_name`/`city`, filtre ville par query param (générique, une seule option "Lyon" pour l'instant)
   - Testé contre le serveur dev réel : challenge actif+futur affiché, challenge actif mais deadline passée masqué, brouillon masqué, filtre ville Paris/Lyon fonctionne correctement
+
+- 2026-07-03 : Bloc 09 (page détail challenge) terminé.
+  - Page `/challenges/[id]` : brief complet, prize pool, répartition, deadlines, nombre de soumissions, bouton "Participer" (vers `/creator/submit/[id]`, Bloc 10) visible seulement si connecté creator ET deadline non dépassée
+  - Testé contre le serveur dev réel : contenu complet affiché, compteur de soumissions à jour après ajout, bouton correctement absent (anonyme / merchant / deadline passée) et présent (creator + deadline future), 404 sur un id inexistant
+  - Note test : deux faux négatifs initiaux dus aux marqueurs `<!-- -->` que React insère en SSR entre nœuds JSX adjacents — vérifiés manuellement sur le HTML brut, aucun vrai bug

@@ -190,6 +190,15 @@ create table payouts (
 alter table payouts enable row level security;
 create policy "payouts visibles par leur créateur" on payouts for select
   using (creator_id in (select id from creator_profiles where user_id = auth.uid()));
+-- Ajoutée au bloc 15 : sans ça, la page resultats du merchant (RLS standard, pas service role
+-- pour une simple lecture) ne voyait jamais les payouts de son propre challenge.
+create policy "payouts visibles par le merchant du challenge" on payouts for select
+  using (
+    challenge_id in (
+      select id from challenges
+      where merchant_id in (select id from merchant_profiles where user_id = auth.uid())
+    )
+  );
 -- Volontairement aucune policy insert/update : la création et la mise à jour des payouts (bloc 15,
 -- webhooks bloc 11/transfer) sont des écritures cross-user privilégiées, faites exclusivement via le
 -- client Supabase service role côté serveur, jamais par un client authentifié classique.

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { stripe } from "@/lib/stripe";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { levelForXp } from "@/lib/xp";
 
@@ -172,6 +173,131 @@ export async function finalizeChallengeResultsAction(
     .from("challenges")
     .update({ status: "results_finalized" })
     .eq("id", challengeId);
+
+  return { finalized: true };
+}
+
+// Crée les payouts des 3 premiers (80% net du prize_pool, réparti selon prize_distribution,
+// arrondi à l'inférieur par rang, reliquat de centimes ajouté au 1er). Idempotent : si des
+// payouts existent déjà pour ce challenge, ne recrée rien (protège contre un double clic).
+async function createPayoutsForChallenge(challengeId: string): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: existingPayouts } = await admin
+    .from("payouts")
+    .select("id")
+    .eq("challenge_id", challengeId)
+    .limit(1);
+
+  if (existingPayouts && existingPayouts.length > 0) {
+    return;
+  }
+
+  const { data: challenge } = await admin
+    .from("challenges")
+    .select("prize_pool, prize_distribution")
+    .eq("id", challengeId)
+    .single();
+
+  if (!challenge) {
+    return;
+  }
+
+  const { data: topSubmissions } = await admin
+    .from("submissions")
+    .select("creator_id, rank")
+    .eq("challenge_id", challengeId)
+    .in("rank", [1, 2, 3])
+    .order("rank", { ascending: true });
+
+  if (!topSubmissions || topSubmissions.length === 0) {
+    return;
+  }
+
+  const distribution = challenge.prize_distribution as Record<string, number>;
+  const prizePoolCents = Math.round(Number(challenge.prize_pool) * 100);
+  const netCents = Math.floor(prizePoolCents * 0.8);
+
+  const shares = topSubmissions.map((s) => ({
+    creatorId: s.creator_id,
+    rank: s.rank as number,
+    cents: Math.floor((netCents * (distribution[String(s.rank)] ?? 0)) / 100),
+  }));
+
+  const distributedCents = shares.reduce((sum, s) => sum + s.cents, 0);
+  const remainderCents = netCents - distributedCents;
+  const firstRankShare = shares.find((s) => s.rank === 1);
+  if (firstRankShare) {
+    firstRankShare.cents += remainderCents;
+  }
+
+  for (const share of shares) {
+    const { data: creatorProfile } = await admin
+      .from("creator_profiles")
+      .select("stripe_account_id, stripe_onboarding_status")
+      .eq("id", share.creatorId)
+      .single();
+
+    const { data: payout } = await admin
+      .from("payouts")
+      .insert({
+        challenge_id: challengeId,
+        creator_id: share.creatorId,
+        amount: share.cents / 100,
+        rank: share.rank,
+        status: "awaiting_onboarding",
+      })
+      .select("id")
+      .single();
+
+    if (
+      payout &&
+      creatorProfile?.stripe_onboarding_status === "complete" &&
+      creatorProfile.stripe_account_id
+    ) {
+      try {
+        const transfer = await stripe.transfers.create({
+          amount: share.cents,
+          currency: "eur",
+          destination: creatorProfile.stripe_account_id,
+        });
+        await admin
+          .from("payouts")
+          .update({ status: "pending", stripe_transfer_id: transfer.id })
+          .eq("id", payout.id);
+      } catch {
+        // L'appel de creation du Transfer a echoue de facon synchrone (pas un
+        // transfer.failed webhook apres coup) : le compte est deja "complete", donc
+        // rien ne redeclenchera automatiquement une nouvelle tentative (le webhook
+        // account.updated du Bloc 11 ne reagit qu'a un changement de statut d'onboarding).
+        // On marque le payout failed pour que ce soit visible et traite manuellement,
+        // plutot que de le laisser a tort en awaiting_onboarding (qui ne serait alors
+        // plus jamais repris).
+        await admin
+          .from("payouts")
+          .update({ status: "failed" })
+          .eq("id", payout.id);
+      }
+    }
+  }
+}
+
+export type ViewResultsState = FinalizeResultsState;
+
+export async function viewResultsAction(
+  prevState: ViewResultsState,
+  formData: FormData,
+): Promise<ViewResultsState> {
+  const finalizeResult = await finalizeChallengeResultsAction(prevState, formData);
+
+  if (finalizeResult.error || finalizeResult.refunded) {
+    return finalizeResult;
+  }
+
+  const challengeId = formData.get("challengeId");
+  if (typeof challengeId === "string" && challengeId) {
+    await createPayoutsForChallenge(challengeId);
+  }
 
   return { finalized: true };
 }

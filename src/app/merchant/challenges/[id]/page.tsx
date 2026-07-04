@@ -65,14 +65,24 @@ export default async function MerchantChallengeDetailPage({
         {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}
       </p>
 
-      {(challenge.status === "active" || challenge.status === "voting") && (
-        <Link
-          href={`/merchant/challenges/${challenge.id}/vote`}
-          className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
-        >
-          Voter sur les soumissions
-        </Link>
-      )}
+      <div className="flex flex-wrap gap-3">
+        {(challenge.status === "active" || challenge.status === "voting") && (
+          <Link
+            href={`/merchant/challenges/${challenge.id}/vote`}
+            className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
+          >
+            Voter sur les soumissions
+          </Link>
+        )}
+        {challenge.status !== "draft" && challenge.status !== "awaiting_payment" && (
+          <Link
+            href={`/merchant/challenges/${challenge.id}/results`}
+            className="w-fit rounded-md border border-primary px-4 py-2 text-sm font-medium text-primary"
+          >
+            Voir les résultats
+          </Link>
+        )}
+      </div>
 
       <h2 className="text-lg font-semibold">
         Soumissions ({submissions?.length ?? 0})

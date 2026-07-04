@@ -18,7 +18,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 13 — Vote pro sur shortlist
 - [x] Bloc 14 — Scoring et calcul final
 - [x] Bloc 15 — Résultats et déclenchement des payouts
-- [ ] Bloc 16 — Profil créateur public
+- [x] Bloc 16 — Profil créateur public
 - [ ] Bloc 17 — Dashboard créateur
 - [ ] Bloc 18 — Landing page
 - [ ] Bloc 19 — Tests end-to-end
@@ -125,3 +125,9 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - **Bug RLS trouvé et corrigé pendant les tests** : la policy `payouts` d'origine (`schema.sql`) n'autorisait que le *créateur* à lire ses payouts, jamais le *merchant* propriétaire du challenge — la page résultats du pro ne voyait donc jamais ses propres payouts. Nouvelle policy `payouts visibles par le merchant du challenge` ajoutée via migration MCP et reportée dans `schema.sql`, conformément à la règle CLAUDE.md "corriger la policy, jamais désactiver RLS"
   - **Testé** : vérifié au préalable que `stripe.transfers.create` échoue bien réellement sans clé Stripe valide (`StripeAuthenticationError`), confirmant que le `catch` de l'action serait bien déclenché en conditions réelles ; puis simulation de la séquence complète (même limite `useFormState` qu'aux Blocs 13/14) — pages (refunded, attente avant deadline, bouton après deadline, 404 pour un tiers) testées en HTTP réel ; calcul des montants/arrondi/reliquat, statuts `failed`/`awaiting_onboarding`, idempotence et cas `refunded` (aucun payout créé) vérifiés en base
   - **Non testé** : un vrai Transfer Stripe réussi (`status: paid` via webhook), qui nécessite un vrai `STRIPE_SECRET_KEY` — à vérifier dès que Natan fournit une clé de test, comme pour les Blocs 07/11
+
+- 2026-07-04 : Bloc 16 (profil créateur public) terminé.
+  - Page `/creators/[username]` (publique, lecture RLS standard uniquement — aucune donnée `payouts` affichée) : avatar (ou initiale par défaut), niveau/XP/wins, badges calculés à la volée (pas stockés — pas de colonne dédiée, évite l'invalidation), historique des victoires dérivé de `submissions.rank = 1`
+  - `avatar_url` rendu via `next/image` : ajout de `images.remotePatterns` dans `next.config.mjs` pour le hostname Supabase Storage (déduit de `NEXT_PUBLIC_SUPABASE_URL`), sinon Next rejette l'URL externe au runtime
+  - **Bug middleware trouvé et corrigé pendant les tests** : `pathname.startsWith("/creator")` matchait aussi `/creators/[username]` (préfixe commun), donc cette page publique était bloquée et redirigée vers `/login` comme si c'était une route protégée. Fix : comparaison avec le slash final (`"/creator/"`, `"/merchant/"`) dans `src/middleware.ts`. Reverifié après coup que `/creator/dashboard` et `/merchant/dashboard` redirigent toujours correctement un visiteur non connecté
+  - Testé contre le serveur dev réel : niveau/XP/wins/4 badges/3 victoires (avec business_name du merchant) tous corrects, username insensible à la casse dans l'URL, 404 sur un username inexistant, profil sans aucune soumission affiche bien "aucun badge"/"aucune victoire"

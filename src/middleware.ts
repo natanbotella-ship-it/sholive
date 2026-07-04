@@ -5,8 +5,10 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  const isCreatorRoute = pathname.startsWith("/creator");
-  const isMerchantRoute = pathname.startsWith("/merchant");
+  // "/creator/" (avec le slash) evite de matcher par erreur "/creators/[username]"
+  // (page publique du Bloc 16) : "/creators".startsWith("/creator") vaut aussi true.
+  const isCreatorRoute = pathname.startsWith("/creator/");
+  const isMerchantRoute = pathname.startsWith("/merchant/");
 
   if (isCreatorRoute || isMerchantRoute) {
     if (!user) {

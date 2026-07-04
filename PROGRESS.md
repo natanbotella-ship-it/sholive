@@ -15,7 +15,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 10 — Soumission créateur
 - [~] Bloc 11 — Stripe Connect : onboarding créateur (code complet, création de compte Connect réelle non testée — clé Stripe manquante)
 - [x] Bloc 12 — Dashboard pro : suivi challenge
-- [ ] Bloc 13 — Vote pro sur shortlist
+- [x] Bloc 13 — Vote pro sur shortlist
 - [ ] Bloc 14 — Scoring et calcul final
 - [ ] Bloc 15 — Résultats et déclenchement des payouts
 - [ ] Bloc 16 — Profil créateur public
@@ -104,3 +104,11 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - `/merchant/challenges/[id]` : détail avec liste des soumissions (username, stats déclarées, liens TikTok/Reels/Shorts), vérification d'ownership explicite (`challenge.merchant_id === merchantProfile.id`, sinon `notFound()`) — nécessaire car la policy RLS publique rend aussi visibles les challenges non-`draft` d'un autre merchant
   - Testé avec 2 comptes marchands réels sous RLS : dashboard A liste bien ses 2 challenges (draft + actif) avec statuts corrects, dashboard B (aucun challenge) n'affiche rien de A, détail accessible au propriétaire avec stats/liens corrects, détail d'un challenge d'autrui → 404, id inexistant → 404
   - Faux négatif de test attendu (même cause qu'au Bloc 09, marqueurs `<!-- -->` React SSR entre nœuds adjacents) sur l'assertion brute "1000 vues" — vérifié manuellement sur le HTML brut, rendu correct
+
+- 2026-07-04 : Bloc 13 (vote pro sur shortlist) terminé.
+  - `src/lib/scoring.ts` : `rankSubmissionsByMetricScore` (score métriques /50 normalisé par rapport au max du challenge, égalités départagées par score puis ancienneté) — pure et réutilisée telle quelle au Bloc 14
+  - Page `/merchant/challenges/[id]/vote` : transition paresseuse `active`→`voting` à submission_deadline dépassée (écriture directe sur sa propre row, RLS owner suffit, pas de service role), affiche le top 10 à la volée, bloque avant submission_deadline ("reviens plus tard") et après vote_deadline ("l'algo décidera seul"), affiche l'état déjà-voté si une row `votes` existe
+  - Server Action `castVoteAction` (service role) : revérifie ownership/deadlines et surtout que la soumission votée fait bien partie du top 10 recalculé côté serveur (jamais confiance dans l'id posté par le client), crée `votes`, écrit `merchant_score` (50 gagnant / 0 les autres). Contrainte unique `votes(challenge_id, merchant_id)` bloque nativement un second vote
+  - Lien "Voter sur les soumissions" ajouté à la page détail du Bloc 12 (visible si statut `active`/`voting`)
+  - **Testé** : 8 scénarios via un compte marchand réel + 11 soumissions à métriques distinctes (dashboard dev, cf. limite ci-dessous) — attente avant deadline, top 10/11 correctement tronqué et trié, transition de statut, 404 pour un merchant tiers, vote hors top 10 rejeté, vote valide (merchant_score 50/0 vérifiés en DB), double vote rejeté, page reflète l'état voté, deadline de vote dépassée (page + action)
+  - **Limite de méthode de test** : `castVoteAction` utilise `useFormState`, dont l'invocation réelle passe par le protocole interne Next.js (header `Next-Action`, arguments encodés Flight) — injouable par un simple POST form-urlencoded sans navigateur réel (Playwright non installé, décision déjà actée au Bloc 03). La logique métier de l'action a donc été vérifiée en rejouant exactement la même séquence d'appels Supabase (client authentifié merchant + service role) plutôt qu'en frappant réellement la route HTTP de l'action — le rendu des pages (Server Components, GET) a lui été testé en conditions réelles sans réserve

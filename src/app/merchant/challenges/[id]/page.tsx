@@ -65,6 +65,15 @@ export default async function MerchantChallengeDetailPage({
         {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}
       </p>
 
+      {(challenge.status === "active" || challenge.status === "voting") && (
+        <Link
+          href={`/merchant/challenges/${challenge.id}/vote`}
+          className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
+        >
+          Voter sur les soumissions
+        </Link>
+      )}
+
       <h2 className="text-lg font-semibold">
         Soumissions ({submissions?.length ?? 0})
       </h2>

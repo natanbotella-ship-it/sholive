@@ -14,7 +14,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 09 — Page détail challenge
 - [x] Bloc 10 — Soumission créateur
 - [~] Bloc 11 — Stripe Connect : onboarding créateur (code complet, création de compte Connect réelle non testée — clé Stripe manquante)
-- [ ] Bloc 12 — Dashboard pro : suivi challenge
+- [x] Bloc 12 — Dashboard pro : suivi challenge
 - [ ] Bloc 13 — Vote pro sur shortlist
 - [ ] Bloc 14 — Scoring et calcul final
 - [ ] Bloc 15 — Résultats et déclenchement des payouts
@@ -98,3 +98,9 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Pas de try/catch autour de `stripe.transfers.create` : une levée d'exception fait échouer le webhook (500), ce qui déclenche le retry automatique de Stripe — la requête `awaiting_onboarding` étant relue à chaque appel, un retry ne retente que les payouts encore non résolus (idempotent par construction), sans logique de retry custom à maintenir
   - **Testé** (dev server + script Node éphémère, cookie de session réel généré via `@supabase/ssr`, événements `account.updated` signés localement via `stripe.webhooks.generateTestHeaderString`, aucun appel réseau Stripe) : page conforme aux 4 statuts + bouton absent seulement si `complete` ; redirection vers l'onboarding si profil manquant ; signature invalide rejetée (400) ; transitions `pending`/`restricted`/`complete` appliquées correctement ; scénario payout en attente + passage à `complete` — le webhook échoue bien (500, `transfers.create` sans clé réelle) mais **sans corruption d'état** : `creator_profiles.stripe_onboarding_status` mis à jour à `complete` malgré l'échec en aval, payout resté proprement `awaiting_onboarding` (jamais marqué `pending` à tort)
   - **Non testé** : la création réelle de compte Connect Express et l'exécution réelle d'un Transfer, qui nécessitent un vrai `STRIPE_SECRET_KEY` — à vérifier dès que Natan fournit une clé de test
+
+- 2026-07-04 : Bloc 12 (dashboard pro : suivi challenge) terminé.
+  - `/merchant/dashboard` : liste tous les challenges du merchant (tous statuts, y compris `draft`/`awaiting_payment` — la policy RLS owner les autorise même si la policy publique les masque) avec statut traduit (`src/lib/challenge-status.ts`, réutilisable au Bloc 15), prize pool, deadline
+  - `/merchant/challenges/[id]` : détail avec liste des soumissions (username, stats déclarées, liens TikTok/Reels/Shorts), vérification d'ownership explicite (`challenge.merchant_id === merchantProfile.id`, sinon `notFound()`) — nécessaire car la policy RLS publique rend aussi visibles les challenges non-`draft` d'un autre merchant
+  - Testé avec 2 comptes marchands réels sous RLS : dashboard A liste bien ses 2 challenges (draft + actif) avec statuts corrects, dashboard B (aucun challenge) n'affiche rien de A, détail accessible au propriétaire avec stats/liens corrects, détail d'un challenge d'autrui → 404, id inexistant → 404
+  - Faux négatif de test attendu (même cause qu'au Bloc 09, marqueurs `<!-- -->` React SSR entre nœuds adjacents) sur l'assertion brute "1000 vues" — vérifié manuellement sur le HTML brut, rendu correct

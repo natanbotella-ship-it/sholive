@@ -13,7 +13,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Création..." : "Créer le challenge (brouillon)"}
     </button>
@@ -50,7 +50,7 @@ export function ChallengeForm() {
           name="title"
           type="text"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -63,7 +63,7 @@ export function ChallengeForm() {
           name="description"
           required
           rows={3}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -76,7 +76,7 @@ export function ChallengeForm() {
           name="concept"
           required
           rows={2}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -89,7 +89,7 @@ export function ChallengeForm() {
           name="consignes"
           required
           rows={3}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -102,7 +102,7 @@ export function ChallengeForm() {
           name="hashtagsObligatoires"
           required
           rows={2}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -114,7 +114,7 @@ export function ChallengeForm() {
           id="exemplesInspiration"
           name="exemplesInspiration"
           rows={2}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -130,7 +130,7 @@ export function ChallengeForm() {
           step="0.01"
           required
           defaultValue={200}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -151,7 +151,7 @@ export function ChallengeForm() {
               max={60}
               required
               defaultValue={50}
-              className="w-20 rounded-md border px-2 py-1 text-sm"
+              className="input w-20 px-2 py-1"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -166,7 +166,7 @@ export function ChallengeForm() {
               max={35}
               required
               defaultValue={30}
-              className="w-20 rounded-md border px-2 py-1 text-sm"
+              className="input w-20 px-2 py-1"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -181,7 +181,7 @@ export function ChallengeForm() {
               max={25}
               required
               defaultValue={20}
-              className="w-20 rounded-md border px-2 py-1 text-sm"
+              className="input w-20 px-2 py-1"
             />
           </div>
         </div>
@@ -201,12 +201,12 @@ export function ChallengeForm() {
               e.target.value ? new Date(e.target.value).toISOString() : "",
             )
           }
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
         <input type="hidden" name="submissionDeadlineIso" value={deadlineIso} />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

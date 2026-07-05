@@ -38,7 +38,7 @@ export default async function MerchantChallengeResultsPage({
   const backLink = (
     <Link
       href={`/merchant/challenges/${challenge.id}`}
-      className="text-sm text-primary underline"
+      className="link text-sm"
     >
       ← {challenge.title}
     </Link>
@@ -46,10 +46,10 @@ export default async function MerchantChallengeResultsPage({
 
   if (challenge.status === "refunded") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Résultats</h1>
-        <p className="text-sm text-foreground/60">
+        <h1 className="text-2xl font-bold text-primary-ink">Résultats</h1>
+        <p className="text-sm text-muted">
           Ce challenge a reçu moins de 10 soumissions à la deadline. Aucun
           payout n&apos;est créé — contacte Natan pour déclencher le
           remboursement intégral (commission Sholive incluse).
@@ -62,10 +62,10 @@ export default async function MerchantChallengeResultsPage({
   // finalisation — l'action la refuse aussi côté serveur.
   if (challenge.status === "draft" || challenge.status === "awaiting_payment") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Résultats</h1>
-        <p className="text-sm text-foreground/60">
+        <h1 className="text-2xl font-bold text-primary-ink">Résultats</h1>
+        <p className="text-sm text-muted">
           Ce challenge n&apos;a pas été lancé (prize pool non payé), il n&apos;y a
           pas de résultats à calculer.
         </p>
@@ -77,19 +77,19 @@ export default async function MerchantChallengeResultsPage({
     const voteDeadlinePassed = new Date(challenge.vote_deadline) <= new Date();
 
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Résultats</h1>
+        <h1 className="text-2xl font-bold text-primary-ink">Résultats</h1>
         {voteDeadlinePassed ? (
           <>
-            <p className="text-sm text-foreground/60">
+            <p className="text-sm text-muted">
               La deadline de vote est passée, tu peux maintenant finaliser les
               résultats.
             </p>
             <ResultsForm challengeId={challenge.id} />
           </>
         ) : (
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm text-muted">
             Les résultats seront disponibles après la deadline de vote du{" "}
             {formatDateTimeFr(challenge.vote_deadline)}.
           </p>
@@ -113,9 +113,9 @@ export default async function MerchantChallengeResultsPage({
     .order("rank", { ascending: true });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-8">
       {backLink}
-      <h1 className="text-2xl font-bold text-primary">
+      <h1 className="text-2xl font-bold text-primary-ink">
         Résultats — {challenge.title}
       </h1>
 
@@ -125,12 +125,12 @@ export default async function MerchantChallengeResultsPage({
           {(submissions ?? []).map((submission) => (
             <li
               key={submission.id}
-              className="flex flex-col gap-1 rounded-md border p-3 text-sm"
+              className="flex flex-col gap-1 card p-3 text-sm"
             >
               <span className="font-semibold">
                 #{submission.rank} @{submission.creator_profiles.username}
               </span>
-              <span className="text-foreground/60">
+              <span className="text-muted">
                 Score métriques {Number(submission.metric_score).toFixed(1)}
                 /50 · Score marchand {submission.merchant_score.toFixed(1)}/50
                 · Total {Number(submission.total_score).toFixed(1)}/100
@@ -143,7 +143,7 @@ export default async function MerchantChallengeResultsPage({
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Payouts</h2>
         {!payouts || payouts.length === 0 ? (
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm text-muted">
             Aucun payout créé pour l&apos;instant.
           </p>
         ) : (
@@ -151,13 +151,13 @@ export default async function MerchantChallengeResultsPage({
             {payouts.map((payout) => (
               <li
                 key={payout.id}
-                className="flex flex-col gap-1 rounded-md border p-3 text-sm"
+                className="flex flex-col gap-1 card p-3 text-sm"
               >
                 <span className="font-semibold">
                   #{payout.rank} @{payout.creator_profiles.username} —{" "}
                   {payout.amount.toFixed(2)}€
                 </span>
-                <span className="text-foreground/60">
+                <span className="text-muted">
                   {PAYOUT_STATUS_LABELS[payout.status] ?? payout.status}
                 </span>
               </li>

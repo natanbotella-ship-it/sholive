@@ -24,13 +24,13 @@ export default async function CreatorPaymentsPage() {
   const status = creatorProfile.stripe_onboarding_status;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary">Mes paiements</h1>
+    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">Mes paiements</h1>
 
       <p className="text-sm">{ONBOARDING_STATUS_LABELS[status] ?? status}</p>
 
       {status === "complete" ? (
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-muted">
           Tu peux recevoir tes gains directement sur ton compte bancaire.
         </p>
       ) : (
@@ -39,7 +39,7 @@ export default async function CreatorPaymentsPage() {
 
       <Link
         href="/creator/dashboard"
-        className="text-sm text-primary underline"
+        className="link text-sm"
       >
         Retour au dashboard
       </Link>

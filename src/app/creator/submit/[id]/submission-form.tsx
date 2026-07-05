@@ -11,7 +11,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Envoi..." : "Soumettre ma vidéo"}
     </button>
@@ -39,7 +39,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
           type="url"
           required
           placeholder="https://www.tiktok.com/@..."
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -53,7 +53,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
           type="url"
           required
           placeholder="https://www.instagram.com/reel/..."
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -66,7 +66,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
           name="shortsUrl"
           type="url"
           placeholder="https://youtube.com/shorts/..."
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -84,7 +84,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
               min={0}
               required
               defaultValue={0}
-              className="rounded-md border px-2 py-1 text-sm"
+              className="input px-2 py-1"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -98,7 +98,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
               min={0}
               required
               defaultValue={0}
-              className="rounded-md border px-2 py-1 text-sm"
+              className="input px-2 py-1"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -112,7 +112,7 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
               min={0}
               required
               defaultValue={0}
-              className="rounded-md border px-2 py-1 text-sm"
+              className="input px-2 py-1"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -126,13 +126,13 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
               min={0}
               required
               defaultValue={0}
-              className="rounded-md border px-2 py-1 text-sm"
+              className="input px-2 py-1"
             />
           </div>
         </div>
       </fieldset>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

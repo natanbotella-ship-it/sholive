@@ -8,16 +8,16 @@ export default async function ResetPasswordPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary">
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">
         Réinitialiser le mot de passe
       </h1>
       {user ? (
         <ResetPasswordForm />
       ) : (
-        <p className="max-w-sm text-sm text-red-600">
+        <p className="max-w-sm alert-error">
           Lien invalide ou expiré. Redemande un lien depuis{" "}
-          <a href="/forgot-password" className="text-primary underline">
+          <a href="/forgot-password" className="link">
             mot de passe oublié
           </a>
           .

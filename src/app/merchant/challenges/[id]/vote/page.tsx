@@ -56,7 +56,7 @@ export default async function MerchantChallengeVotePage({
   const backLink = (
     <Link
       href={`/merchant/challenges/${challenge.id}`}
-      className="text-sm text-primary underline"
+      className="link text-sm"
     >
       ← {challenge.title}
     </Link>
@@ -64,9 +64,9 @@ export default async function MerchantChallengeVotePage({
 
   if (challenge.status === "results_finalized" || challenge.status === "refunded") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-muted">
           Ce challenge est déjà terminé.
         </p>
       </main>
@@ -75,10 +75,10 @@ export default async function MerchantChallengeVotePage({
 
   if (!submissionDeadlinePassed) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Vote</h1>
-        <p className="text-sm text-foreground/60">
+        <h1 className="text-2xl font-bold text-primary-ink">Vote</h1>
+        <p className="text-sm text-muted">
           Les soumissions sont encore ouvertes jusqu&apos;au{" "}
           {formatDateTimeFr(challenge.submission_deadline)}.
           Reviens après cette date pour voter.
@@ -98,10 +98,10 @@ export default async function MerchantChallengeVotePage({
 
   if (voteDeadlinePassed) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Vote</h1>
-        <p className="text-sm text-foreground/60">
+        <h1 className="text-2xl font-bold text-primary-ink">Vote</h1>
+        <p className="text-sm text-muted">
           La deadline de vote (J+7) est dépassée, l&apos;algorithme décidera
           seul du classement final.
           {existingVote &&
@@ -113,9 +113,9 @@ export default async function MerchantChallengeVotePage({
 
   if (existingVote) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
         {backLink}
-        <h1 className="text-2xl font-bold text-primary">Vote</h1>
+        <h1 className="text-2xl font-bold text-primary-ink">Vote</h1>
         <p className="text-sm">
           Tu as déjà voté pour @
           {existingVote.submissions.creator_profiles.username}. Merci !
@@ -134,17 +134,17 @@ export default async function MerchantChallengeVotePage({
   const top10 = rankSubmissionsByMetricScore(submissions ?? []).slice(0, 10);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-8">
       {backLink}
-      <h1 className="text-2xl font-bold text-primary">Vote — {challenge.title}</h1>
-      <p className="text-sm text-foreground/60">
+      <h1 className="text-2xl font-bold text-primary-ink">Vote — {challenge.title}</h1>
+      <p className="text-sm text-muted">
         Choisis ta soumission gagnante parmi le top 10 (classé par score
         métriques). Deadline de vote :{" "}
         {formatDateTimeFr(challenge.vote_deadline)}.
       </p>
 
       {top10.length === 0 ? (
-        <p className="text-sm text-foreground/60">Aucune soumission reçue.</p>
+        <p className="text-sm text-muted">Aucune soumission reçue.</p>
       ) : (
         <VoteForm
           challengeId={challenge.id}

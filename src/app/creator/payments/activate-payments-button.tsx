@@ -14,7 +14,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Redirection..." : "Activer mes paiements"}
     </button>
@@ -29,7 +29,7 @@ export function ActivatePaymentsButton() {
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
       <SubmitButton />
     </form>
   );

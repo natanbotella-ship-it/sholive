@@ -54,9 +54,9 @@ export default async function ChallengeDetailPage({
   > | null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-bold text-primary">{challenge.title}</h1>
-      <p className="text-sm text-foreground/60">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">{challenge.title}</h1>
+      <p className="text-sm text-muted">
         {challenge.merchant_profiles.business_name} —{" "}
         {challenge.merchant_profiles.city}
       </p>
@@ -64,7 +64,7 @@ export default async function ChallengeDetailPage({
       <p className="text-sm">{challenge.description}</p>
 
       {brief && (
-        <section className="flex flex-col gap-2 rounded-md border p-4 text-sm">
+        <section className="flex flex-col gap-2 card text-sm">
           <h2 className="font-semibold">Brief</h2>
           {brief.concept && <p>{brief.concept}</p>}
           {brief.consignes && brief.consignes.length > 0 && (
@@ -120,7 +120,7 @@ export default async function ChallengeDetailPage({
       {canParticipate && (
         <Link
           href={`/creator/submit/${challenge.id}`}
-          className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
+          className="btn-primary w-fit"
         >
           Participer
         </Link>

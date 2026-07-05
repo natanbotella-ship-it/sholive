@@ -15,7 +15,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Enregistrement..." : "Enregistrer"}
     </button>
@@ -59,7 +59,7 @@ export function ProfileForm({
           maxLength={20}
           pattern="[a-z0-9_]+"
           defaultValue={currentUsername}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -76,7 +76,7 @@ export function ProfileForm({
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

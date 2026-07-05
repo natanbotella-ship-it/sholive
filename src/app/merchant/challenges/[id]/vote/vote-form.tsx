@@ -17,7 +17,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary w-fit"
     >
       {pending ? "Enregistrement..." : "Valider le vote"}
     </button>
@@ -40,7 +40,7 @@ export function VoteForm({
       <ul className="flex flex-col gap-2">
         {candidates.map((candidate, index) => (
           <li key={candidate.id}>
-            <label className="flex items-center gap-3 rounded-md border p-3 text-sm has-[:checked]:border-primary">
+            <label className="flex cursor-pointer items-center gap-3 card card-hover p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary-soft/40">
               <input
                 type="radio"
                 name="submissionId"
@@ -57,7 +57,7 @@ export function VoteForm({
         ))}
       </ul>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

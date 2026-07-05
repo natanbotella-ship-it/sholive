@@ -27,19 +27,19 @@ export default async function MerchantDashboardPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary">Mes challenges</h1>
+        <h1 className="text-2xl font-bold text-primary-ink">Mes challenges</h1>
         <Link
           href="/merchant/challenges/new"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
+          className="btn-primary"
         >
           Nouveau challenge
         </Link>
       </div>
 
       {!challenges || challenges.length === 0 ? (
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-muted">
           Aucun challenge pour l&apos;instant.
         </p>
       ) : (
@@ -48,14 +48,22 @@ export default async function MerchantDashboardPage() {
             <li key={challenge.id}>
               <Link
                 href={`/merchant/challenges/${challenge.id}`}
-                className="flex flex-col gap-1 rounded-md border p-4 text-sm hover:border-primary"
+                className="flex flex-col gap-2 card card-hover text-sm"
               >
-                <span className="font-semibold">{challenge.title}</span>
-                <span className="text-foreground/60">
-                  {CHALLENGE_STATUS_LABELS[challenge.status] ?? challenge.status}
-                  {" — "}Prize pool {challenge.prize_pool}€
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-semibold">{challenge.title}</span>
+                  <span className="badge">
+                    {CHALLENGE_STATUS_LABELS[challenge.status] ??
+                      challenge.status}
+                  </span>
                 </span>
-                <span className="text-foreground/60">
+                <span className="text-muted">
+                  Prize pool{" "}
+                  <span className="font-semibold text-primary-ink">
+                    {challenge.prize_pool}€
+                  </span>
+                </span>
+                <span className="text-muted">
                   Deadline soumission :{" "}
                   {formatDateTimeFr(challenge.submission_deadline)}
                 </span>

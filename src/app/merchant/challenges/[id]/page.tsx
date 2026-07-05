@@ -45,20 +45,27 @@ export default async function MerchantChallengeDetailPage({
     .order("created_at", { ascending: true });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-8">
       <Link
         href="/merchant/dashboard"
-        className="text-sm text-primary underline"
+        className="link text-sm"
       >
         ← Mes challenges
       </Link>
 
-      <h1 className="text-2xl font-bold text-primary">{challenge.title}</h1>
-      <p className="text-sm text-foreground/60">
-        {CHALLENGE_STATUS_LABELS[challenge.status] ?? challenge.status}
-        {" — "}Prize pool {challenge.prize_pool}€
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-primary-ink">{challenge.title}</h1>
+        <span className="badge">
+          {CHALLENGE_STATUS_LABELS[challenge.status] ?? challenge.status}
+        </span>
+      </div>
+      <p className="text-sm text-muted">
+        Prize pool :{" "}
+        <span className="font-semibold text-primary-ink">
+          {challenge.prize_pool}€
+        </span>
       </p>
-      <p className="text-sm text-foreground/60">
+      <p className="text-sm text-muted">
         Deadline soumission : {formatDateTimeFr(challenge.submission_deadline)}
         {" · "}
         Deadline vote : {formatDateTimeFr(challenge.vote_deadline)}
@@ -68,7 +75,7 @@ export default async function MerchantChallengeDetailPage({
         {(challenge.status === "active" || challenge.status === "voting") && (
           <Link
             href={`/merchant/challenges/${challenge.id}/vote`}
-            className="w-fit rounded-md bg-primary px-4 py-2 text-sm font-medium text-white"
+            className="btn-primary w-fit"
           >
             Voter sur les soumissions
           </Link>
@@ -76,7 +83,7 @@ export default async function MerchantChallengeDetailPage({
         {challenge.status !== "draft" && challenge.status !== "awaiting_payment" && (
           <Link
             href={`/merchant/challenges/${challenge.id}/results`}
-            className="w-fit rounded-md border border-primary px-4 py-2 text-sm font-medium text-primary"
+            className="btn-outline w-fit"
           >
             Voir les résultats
           </Link>
@@ -88,7 +95,7 @@ export default async function MerchantChallengeDetailPage({
       </h2>
 
       {!submissions || submissions.length === 0 ? (
-        <p className="text-sm text-foreground/60">
+        <p className="text-sm text-muted">
           Aucune soumission pour l&apos;instant.
         </p>
       ) : (
@@ -96,12 +103,12 @@ export default async function MerchantChallengeDetailPage({
           {submissions.map((submission) => (
             <li
               key={submission.id}
-              className="flex flex-col gap-2 rounded-md border p-4 text-sm"
+              className="flex flex-col gap-2 card text-sm"
             >
               <span className="font-semibold">
                 @{submission.creator_profiles.username}
               </span>
-              <span className="text-foreground/60">
+              <span className="text-muted">
                 {submission.declared_views} vues · {submission.declared_saves}{" "}
                 saves · {submission.declared_likes} likes ·{" "}
                 {submission.declared_shares} partages
@@ -112,7 +119,7 @@ export default async function MerchantChallengeDetailPage({
                     href={submission.tiktok_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary underline"
+                    className="link"
                   >
                     TikTok
                   </a>
@@ -122,7 +129,7 @@ export default async function MerchantChallengeDetailPage({
                     href={submission.reels_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary underline"
+                    className="link"
                   >
                     Reels
                   </a>
@@ -132,7 +139,7 @@ export default async function MerchantChallengeDetailPage({
                     href={submission.shorts_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary underline"
+                    className="link"
                   >
                     Shorts
                   </a>

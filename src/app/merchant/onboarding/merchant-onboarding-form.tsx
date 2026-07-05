@@ -14,7 +14,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Enregistrement..." : "Valider"}
     </button>
@@ -38,7 +38,7 @@ export function MerchantOnboardingForm() {
           name="businessName"
           type="text"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function MerchantOnboardingForm() {
           type="text"
           required
           defaultValue="Lyon"
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -65,11 +65,11 @@ export function MerchantOnboardingForm() {
           name="phone"
           type="tel"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

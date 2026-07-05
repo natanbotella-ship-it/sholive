@@ -21,8 +21,8 @@ export default async function MerchantOnboardingPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary">
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">
         Complète ton profil pro
       </h1>
       <MerchantOnboardingForm />

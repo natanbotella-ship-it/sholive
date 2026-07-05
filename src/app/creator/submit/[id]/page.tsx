@@ -44,17 +44,17 @@ export default async function SubmitPage({
     .maybeSingle();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary">
+    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">
         Participer : {challenge.title}
       </h1>
 
       {challenge.status !== "active" ? (
-        <p className="text-sm text-red-600">
+        <p className="alert-error">
           Ce challenge n&apos;est pas ouvert aux soumissions.
         </p>
       ) : deadlinePassed ? (
-        <p className="text-sm text-red-600">
+        <p className="alert-error">
           La deadline de soumission pour ce challenge est dépassée.
         </p>
       ) : existingSubmission ? (

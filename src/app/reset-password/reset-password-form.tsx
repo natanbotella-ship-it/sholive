@@ -11,7 +11,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Mise à jour..." : "Mettre à jour le mot de passe"}
     </button>
@@ -25,7 +25,7 @@ export function ResetPasswordForm() {
     return (
       <p className="max-w-sm text-sm">
         Mot de passe mis à jour. Tu peux maintenant{" "}
-        <a href="/login" className="text-primary underline">
+        <a href="/login" className="link">
           te connecter
         </a>
         .
@@ -45,7 +45,7 @@ export function ResetPasswordForm() {
           type="password"
           required
           minLength={8}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -59,11 +59,11 @@ export function ResetPasswordForm() {
           type="password"
           required
           minLength={8}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

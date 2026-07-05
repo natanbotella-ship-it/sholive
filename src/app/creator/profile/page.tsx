@@ -19,8 +19,8 @@ export default async function CreatorProfilePage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary">Mon profil</h1>
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-2xl font-bold text-primary-ink">Mon profil</h1>
       <ProfileForm
         currentUsername={creatorProfile.username}
         currentAvatarUrl={creatorProfile.avatar_url}

@@ -12,7 +12,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Connexion..." : "Se connecter"}
     </button>
@@ -33,7 +33,7 @@ export function LoginForm() {
           name="email"
           type="email"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -46,15 +46,15 @@ export function LoginForm() {
           name="password"
           type="password"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
 
-      <Link href="/forgot-password" className="text-sm text-primary underline">
+      <Link href="/forgot-password" className="link text-sm">
         Mot de passe oublié ?
       </Link>
     </form>

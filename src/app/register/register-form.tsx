@@ -12,7 +12,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+      className="btn-primary"
     >
       {pending ? "Création..." : "Créer mon compte"}
     </button>
@@ -48,7 +48,7 @@ export function RegisterForm({
           name="email"
           type="email"
           required
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -62,7 +62,7 @@ export function RegisterForm({
           type="password"
           required
           minLength={8}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="input"
         />
       </div>
 
@@ -76,6 +76,7 @@ export function RegisterForm({
               value="creator"
               checked={role === "creator"}
               onChange={() => setRole("creator")}
+              className="accent-primary"
             />
             Créateur
           </label>
@@ -86,6 +87,7 @@ export function RegisterForm({
               value="merchant"
               checked={role === "merchant"}
               onChange={() => setRole("merchant")}
+              className="accent-primary"
             />
             Pro (commerçant)
           </label>
@@ -94,12 +96,16 @@ export function RegisterForm({
 
       {role === "creator" && (
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="ageConfirmed" className="mt-1" />
+          <input
+            type="checkbox"
+            name="ageConfirmed"
+            className="mt-1 accent-primary"
+          />
           Je certifie avoir 18 ans ou plus
         </label>
       )}
 
-      {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+      {state.error && <p className="alert-error">{state.error}</p>}
 
       <SubmitButton />
     </form>

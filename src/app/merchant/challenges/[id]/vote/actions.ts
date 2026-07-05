@@ -45,12 +45,21 @@ export async function castVoteAction(
   // RLS restreint deja cette lecture au merchant proprietaire.
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("id, merchant_id, status, vote_deadline")
+    .select("id, merchant_id, status, submission_deadline, vote_deadline")
     .eq("id", challengeId)
     .single();
 
   if (!challenge || challenge.merchant_id !== merchantProfile.id) {
     return { error: "Challenge introuvable" };
+  }
+
+  // La page bloque déjà l'UI avant submission_deadline, mais une Server Action
+  // reste un endpoint POST appelable directement : sans ce contrôle, un vote
+  // anticipé figerait le gagnant sur une shortlist partielle et basculerait le
+  // challenge en "voting" alors que les soumissions sont encore ouvertes (il
+  // disparaîtrait de la liste publique avant sa deadline).
+  if (new Date(challenge.submission_deadline) > new Date()) {
+    return { error: "Les soumissions sont encore ouvertes, le vote n'est pas commencé" };
   }
 
   if (new Date(challenge.vote_deadline) <= new Date()) {

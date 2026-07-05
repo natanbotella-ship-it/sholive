@@ -29,11 +29,15 @@ export async function POST(request: Request) {
 
     if (challengeId) {
       const supabase = createAdminClient();
+      // Stripe livre les événements au moins une fois (doublons/rejeux possibles) :
+      // sans le filtre sur le statut, un rejeu tardif repasserait en "active" un
+      // challenge déjà avancé (voting/results_finalized/refunded).
       await supabase
         .from("challenges")
         .update({ payment_status: "paid", status: "active" })
         .eq("id", challengeId)
-        .eq("stripe_checkout_session_id", session.id);
+        .eq("stripe_checkout_session_id", session.id)
+        .eq("status", "awaiting_payment");
     }
   }
 

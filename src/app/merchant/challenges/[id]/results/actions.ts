@@ -260,11 +260,17 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
           amount: share.cents,
           currency: "eur",
           destination: creatorProfile.stripe_account_id,
+          // Permet aux webhooks transfer.created/transfer.failed de retrouver
+          // le payout même si l'update ci-dessous n'a pas encore été écrit.
+          metadata: { payout_id: payout.id },
         });
+        // Conditionné sur awaiting_onboarding : si le webhook transfer.created est
+        // arrivé entre-temps et a déjà marqué "paid", on ne rétrograde pas en "pending".
         await admin
           .from("payouts")
           .update({ status: "pending", stripe_transfer_id: transfer.id })
-          .eq("id", payout.id);
+          .eq("id", payout.id)
+          .eq("status", "awaiting_onboarding");
       } catch {
         // L'appel de creation du Transfer a echoue de facon synchrone (pas un
         // transfer.failed webhook apres coup) : le compte est deja "complete", donc

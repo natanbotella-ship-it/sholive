@@ -78,15 +78,46 @@ export async function POST(request: Request) {
             amount: Math.round(Number(payout.amount) * 100),
             currency: "eur",
             destination: account.id,
+            // Permet aux webhooks transfer.created/transfer.failed de retrouver
+            // le payout même si l'update ci-dessous n'a pas encore été écrit.
+            metadata: { payout_id: payout.id },
           });
 
+          // Conditionné sur awaiting_onboarding : si le webhook transfer.created
+          // est arrivé entre-temps et a déjà marqué le payout "paid", on ne le
+          // rétrograde pas en "pending".
           await supabase
             .from("payouts")
             .update({ status: "pending", stripe_transfer_id: transfer.id })
-            .eq("id", payout.id);
+            .eq("id", payout.id)
+            .eq("status", "awaiting_onboarding");
         }
       }
     }
+  }
+
+  // CLAUDE.md : transfer.created -> payout "paid", transfer.failed -> payout "failed".
+  // "transfer.failed" n'existe plus dans les versions récentes de l'API Stripe (les
+  // échecs asynchrones passent par des reversals), d'où la comparaison en string —
+  // on le gère quand même conformément à la spec, au cas où.
+  if (event.type === "transfer.created" || (event.type as string) === "transfer.failed") {
+    const transfer = event.data.object as Stripe.Transfer;
+    const newStatus = event.type === "transfer.created" ? "paid" : "failed";
+
+    // Retrouve le payout par la metadata posée à la création du Transfer, à défaut
+    // par stripe_transfer_id. Filtre sur les statuts non terminaux : un rejeu du
+    // webhook ne doit pas écraser un état déjà paid/failed. "awaiting_onboarding"
+    // est accepté car transfer.created peut arriver avant que notre propre code
+    // ait écrit le passage en "pending".
+    const supabase = createAdminClient();
+    let query = supabase
+      .from("payouts")
+      .update({ status: newStatus, stripe_transfer_id: transfer.id })
+      .in("status", ["awaiting_onboarding", "pending"]);
+    query = transfer.metadata?.payout_id
+      ? query.eq("id", transfer.metadata.payout_id)
+      : query.eq("stripe_transfer_id", transfer.id);
+    await query;
   }
 
   return NextResponse.json({ received: true });

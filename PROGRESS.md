@@ -19,7 +19,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 14 — Scoring et calcul final
 - [x] Bloc 15 — Résultats et déclenchement des payouts
 - [x] Bloc 16 — Profil créateur public
-- [ ] Bloc 17 — Dashboard créateur
+- [x] Bloc 17 — Dashboard créateur
 - [ ] Bloc 18 — Landing page
 - [ ] Bloc 19 — Tests end-to-end
 
@@ -131,3 +131,9 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - `avatar_url` rendu via `next/image` : ajout de `images.remotePatterns` dans `next.config.mjs` pour le hostname Supabase Storage (déduit de `NEXT_PUBLIC_SUPABASE_URL`), sinon Next rejette l'URL externe au runtime
   - **Bug middleware trouvé et corrigé pendant les tests** : `pathname.startsWith("/creator")` matchait aussi `/creators/[username]` (préfixe commun), donc cette page publique était bloquée et redirigée vers `/login` comme si c'était une route protégée. Fix : comparaison avec le slash final (`"/creator/"`, `"/merchant/"`) dans `src/middleware.ts`. Reverifié après coup que `/creator/dashboard` et `/merchant/dashboard` redirigent toujours correctement un visiteur non connecté
   - Testé contre le serveur dev réel : niveau/XP/wins/4 badges/3 victoires (avec business_name du merchant) tous corrects, username insensible à la casse dans l'URL, 404 sur un username inexistant, profil sans aucune soumission affiche bien "aucun badge"/"aucune victoire"
+
+- 2026-07-04 : Bloc 17 (dashboard créateur) terminé.
+  - `/creator/dashboard` : mes soumissions avec statut du challenge (+ rang/score si `results_finalized`), statut onboarding Stripe avec lien vers `/creator/payments` si incomplet, historique des payouts (montants + statuts)
+  - `/creator/profile` : édition username + avatar (réutilise `creatorProfileSchema` du Bloc 05, même validation) — conserve l'avatar existant si aucun nouveau fichier n'est fourni, gère le conflit d'unicité (23505) sans planter si le username choisi est déjà pris par un autre compte
+  - Labels de statut (`ONBOARDING_STATUS_LABELS`, `PAYOUT_STATUS_LABELS`) extraits dans `src/lib/` — 2e usage de chacun (déjà présents aux Blocs 11/15), même logique d'extraction que `CHALLENGE_STATUS_LABELS` au Bloc 12
+  - Testé contre le serveur dev réel : dashboard affiche correctement soumission active + soumission classée (rang #1, score), statut onboarding + lien, payout `awaiting_onboarding` ; page profil pré-remplie avec le username actuel ; redirection onboarding si profil manquant. Mutation testée par simulation (même limite `useFormState` qu'aux Blocs 13/14/15) : changement de username OK, re-soumission du même username sans erreur, doublon avec un autre compte correctement rejeté

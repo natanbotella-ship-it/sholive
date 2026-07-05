@@ -1,15 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { PAYOUT_STATUS_LABELS } from "@/lib/payout-status";
 import { ResultsForm } from "./results-form";
-
-const PAYOUT_STATUS_LABELS: Record<string, string> = {
-  awaiting_onboarding: "En attente que le créateur active ses paiements",
-  pending: "Transfert en cours",
-  paid: "Payé",
-  failed: "Échec du virement",
-  refunded: "Remboursé",
-};
 
 export default async function MerchantChallengeResultsPage({
   params,

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { levelForXp } from "@/lib/xp";
 import { submissionSchema } from "./schema";
@@ -94,8 +95,11 @@ export async function submitAction(
     return { error: "Impossible d'enregistrer la soumission" };
   }
 
+  // xp/level sont des colonnes privilégiées (plus de grant update client dessus —
+  // un créateur ne doit pas pouvoir s'attribuer de l'XP lui-même). Service role,
+  // après le rôle vérifié en début d'action et l'insert de soumission réussi.
   const newXp = creatorProfile.xp + 10;
-  await supabase
+  await createAdminClient()
     .from("creator_profiles")
     .update({ xp: newXp, level: levelForXp(newXp) })
     .eq("id", creatorProfile.id);

@@ -63,3 +63,15 @@ create policy "creator profiles modifiables par leur owner" on creator_profiles 
 revoke insert, update, delete on table challenges from anon, authenticated;
 grant insert (merchant_id, title, description, brief, prize_pool, prize_distribution,
   submission_deadline, vote_deadline) on challenges to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 5. xp/level/wins/stripe_* de creator_profiles écrivables par le créateur
+-- Même mécanique que le point 4 : via l'API REST, un créateur pouvait s'attribuer
+-- XP/niveau/victoires (badges et crédibilité publique falsifiés), se déclarer
+-- stripe_onboarding_status='complete' sans onboarding réel, ou rediriger son
+-- stripe_account_id vers un compte Connect arbitraire. Le client authentifié ne
+-- peut plus écrire que username/avatar_url ; XP, wins et colonnes Stripe passent
+-- par le service role (Server Actions/webhooks, code adapté en conséquence).
+revoke insert, update, delete on table creator_profiles from anon, authenticated;
+grant insert (user_id, username, avatar_url) on creator_profiles to authenticated;
+grant update (username, avatar_url) on creator_profiles to authenticated;

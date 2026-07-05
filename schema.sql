@@ -107,6 +107,14 @@ create policy "creator profiles modifiables par leur owner" on creator_profiles 
     and exists (select 1 from profiles where id = auth.uid() and role = 'creator')
   );
 
+-- Grants de colonnes (revue 2026-07-05) : sans ces revokes, le créateur pouvait via
+-- l'API REST s'attribuer xp/level/wins (fausses victoires publiques), se déclarer
+-- stripe_onboarding_status='complete' sans onboarding, ou pointer stripe_account_id
+-- vers un compte Connect arbitraire. XP/wins/Stripe ne s'écrivent que via service role.
+revoke insert, update, delete on table creator_profiles from anon, authenticated;
+grant insert (user_id, username, avatar_url) on creator_profiles to authenticated;
+grant update (username, avatar_url) on creator_profiles to authenticated;
+
 -- 4. Challenges
 -- Statuts : draft (créé, pas payé) -> awaiting_payment (Checkout Session créée, paiement non confirmé)
 -- -> active (paiement confirmé, soumissions ouvertes) -> voting (submission_deadline dépassée, en attente

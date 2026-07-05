@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 
@@ -50,7 +51,11 @@ export async function createConnectAccountAction(
 
     accountId = account.id;
 
-    const { error: updateError } = await supabase
+    // stripe_account_id / stripe_onboarding_status sont des colonnes privilégiées
+    // (plus de grant update client dessus — un créateur ne doit pas pouvoir les
+    // écrire lui-même). Service role, sur le profil dont l'ownership vient d'être
+    // vérifié via la lecture RLS ci-dessus.
+    const { error: updateError } = await createAdminClient()
       .from("creator_profiles")
       .update({
         stripe_account_id: accountId,

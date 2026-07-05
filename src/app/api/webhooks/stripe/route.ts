@@ -69,19 +69,30 @@ export async function POST(request: Request) {
       if (newStatus === "complete") {
         const { data: pendingPayouts } = await supabase
           .from("payouts")
-          .select("id, amount")
+          .select("id, amount, challenge_id, creator_id")
           .eq("creator_id", creatorProfile.id)
           .eq("status", "awaiting_onboarding");
 
         for (const payout of pendingPayouts ?? []) {
-          const transfer = await stripe.transfers.create({
-            amount: Math.round(Number(payout.amount) * 100),
-            currency: "eur",
-            destination: account.id,
-            // Permet aux webhooks transfer.created/transfer.failed de retrouver
-            // le payout même si l'update ci-dessous n'a pas encore été écrit.
-            metadata: { payout_id: payout.id },
-          });
+          const transfer = await stripe.transfers.create(
+            {
+              amount: Math.round(Number(payout.amount) * 100),
+              currency: "eur",
+              destination: account.id,
+              // Permet aux webhooks transfer.created/transfer.failed de retrouver
+              // le payout même si l'update ci-dessous n'a pas encore été écrit.
+              metadata: { payout_id: payout.id },
+            },
+            {
+              // Stripe livre les webhooks au moins une fois, parfois en parallèle :
+              // deux account.updated concurrents lisent les mêmes payouts
+              // awaiting_onboarding avant que l'un des deux ait écrit "pending".
+              // La clé d'idempotence (par challenge + créateur, pas par row payout)
+              // garantit qu'un seul Transfer réel est créé, Stripe renvoyant le
+              // même objet au second appel.
+              idempotencyKey: `payout-transfer-${payout.challenge_id}-${payout.creator_id}`,
+            },
+          );
 
           // Conditionné sur awaiting_onboarding : si le webhook transfer.created
           // est arrivé entre-temps et a déjà marqué le payout "paid", on ne le

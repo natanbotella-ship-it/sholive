@@ -256,14 +256,23 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
       creatorProfile.stripe_account_id
     ) {
       try {
-        const transfer = await stripe.transfers.create({
-          amount: share.cents,
-          currency: "eur",
-          destination: creatorProfile.stripe_account_id,
-          // Permet aux webhooks transfer.created/transfer.failed de retrouver
-          // le payout même si l'update ci-dessous n'a pas encore été écrit.
-          metadata: { payout_id: payout.id },
-        });
+        const transfer = await stripe.transfers.create(
+          {
+            amount: share.cents,
+            currency: "eur",
+            destination: creatorProfile.stripe_account_id,
+            // Permet aux webhooks transfer.created/transfer.failed de retrouver
+            // le payout même si l'update ci-dessous n'a pas encore été écrit.
+            metadata: { payout_id: payout.id },
+          },
+          {
+            // Même clé que dans le webhook account.updated : deux déclenchements
+            // concurrents (double clic "Voir les résultats" dans deux onglets,
+            // webhook simultané) ne peuvent pas créer deux Transfers réels pour
+            // le même gagnant du même challenge.
+            idempotencyKey: `payout-transfer-${challengeId}-${share.creatorId}`,
+          },
+        );
         // Conditionné sur awaiting_onboarding : si le webhook transfer.created est
         // arrivé entre-temps et a déjà marqué "paid", on ne rétrograde pas en "pending".
         await admin
@@ -278,11 +287,14 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
         // account.updated du Bloc 11 ne reagit qu'a un changement de statut d'onboarding).
         // On marque le payout failed pour que ce soit visible et traite manuellement,
         // plutot que de le laisser a tort en awaiting_onboarding (qui ne serait alors
-        // plus jamais repris).
+        // plus jamais repris). Conditionne sur awaiting_onboarding : si un appel
+        // concurrent a deja cree le Transfer (conflit de cle d'idempotence Stripe
+        // levant une exception ici), on n'ecrase pas son "pending"/"paid".
         await admin
           .from("payouts")
           .update({ status: "failed" })
-          .eq("id", payout.id);
+          .eq("id", payout.id)
+          .eq("status", "awaiting_onboarding");
       }
     }
   }

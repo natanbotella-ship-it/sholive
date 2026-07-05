@@ -23,3 +23,30 @@ alter table payouts
 drop policy "challenges non-draft visibles par tous" on challenges;
 create policy "challenges lancés visibles par tous" on challenges for select
   using (status not in ('draft', 'awaiting_payment'));
+
+-- ---------------------------------------------------------------------------
+-- 3. Rôle auto-escaladable (user_metadata forgeable + policy update sur profiles)
+-- user_metadata.role est modifiable par l'utilisateur lui-même (auth.updateUser) et la
+-- policy update de profiles permettait aussi de changer son propre role en SQL/REST.
+-- N'importe quel compte pouvait donc cumuler les deux rôles (ex. un pro qui se crée un
+-- profil créateur et soumet/vote sur son propre challenge). Le code lit désormais le
+-- rôle dans profiles.role (src/lib/auth.ts) ; côté DB :
+--   a) plus aucune policy update sur profiles (rows écrites uniquement par le trigger)
+--   b) la création/modification d'un profil merchant/creator exige le rôle correspondant
+drop policy "profiles modifiables par leur owner" on profiles;
+
+drop policy "merchant profiles modifiables par leur owner" on merchant_profiles;
+create policy "merchant profiles modifiables par leur owner" on merchant_profiles for all
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and role = 'merchant')
+  );
+
+drop policy "creator profiles modifiables par leur owner" on creator_profiles;
+create policy "creator profiles modifiables par leur owner" on creator_profiles for all
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and role = 'creator')
+  );

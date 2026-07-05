@@ -15,6 +15,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
+    // user_metadata.role sert ici de simple aiguillage UX (vers quelle section
+    // rediriger) : il est forgeable par l'utilisateur, mais un rôle falsifié ne
+    // donne accès à aucune donnée (RLS) ni aucune mutation (les Server Actions
+    // revérifient le rôle contre profiles.role, cf. src/lib/auth.ts).
     const role = user.user_metadata?.role;
 
     if (role !== "creator" && role !== "merchant") {

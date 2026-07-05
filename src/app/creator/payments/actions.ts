@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 
 export type ConnectAccountState = {
@@ -13,18 +14,17 @@ export async function createConnectAccountAction(
   _formData: FormData,
 ): Promise<ConnectAccountState> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "creator") {
+  if (!auth || auth.role !== "creator") {
     return { error: "Accès réservé aux comptes créateur" };
   }
 
   const { data: creatorProfile, error: fetchError } = await supabase
     .from("creator_profiles")
     .select("id, stripe_account_id")
-    .eq("user_id", user.id)
+    .eq("user_id", auth.user.id)
     .single();
 
   if (fetchError || !creatorProfile) {
@@ -39,7 +39,7 @@ export async function createConnectAccountAction(
       account = await stripe.accounts.create({
         type: "express",
         country: "FR",
-        email: user.email,
+        email: auth.user.email,
         capabilities: {
           transfers: { requested: true },
         },

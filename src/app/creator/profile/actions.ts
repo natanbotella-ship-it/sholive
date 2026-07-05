@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { creatorProfileSchema } from "../onboarding/schema";
 
 export type UpdateCreatorProfileState = {
@@ -22,18 +23,17 @@ export async function updateCreatorProfileAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "creator") {
+  if (!auth || auth.role !== "creator") {
     return { error: "Accès réservé aux comptes créateur" };
   }
 
   const { data: creatorProfile } = await supabase
     .from("creator_profiles")
     .select("id, avatar_url")
-    .eq("user_id", user.id)
+    .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (!creatorProfile) {
@@ -46,7 +46,7 @@ export async function updateCreatorProfileAction(
 
   if (avatar && avatar.size > 0) {
     const extension = avatar.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/avatar.${extension}`;
+    const path = `${auth.user.id}/avatar.${extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")

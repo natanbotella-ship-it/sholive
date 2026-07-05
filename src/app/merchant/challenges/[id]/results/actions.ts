@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { levelForXp } from "@/lib/xp";
@@ -26,18 +27,17 @@ export async function finalizeChallengeResultsAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "merchant") {
+  if (!auth || auth.role !== "merchant") {
     return { error: "Accès réservé aux comptes pro" };
   }
 
   const { data: merchantProfile } = await supabase
     .from("merchant_profiles")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (!merchantProfile) {

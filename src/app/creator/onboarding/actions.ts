@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { creatorProfileSchema } from "./schema";
 
 export type CreatorOnboardingState = {
@@ -22,11 +23,12 @@ export async function completeCreatorProfileAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth) :
+  // c'est ce contrôle qui empêche un compte pro de se créer un profil créateur
+  // (et de soumettre à ses propres challenges).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "creator") {
+  if (!auth || auth.role !== "creator") {
     return { error: "Accès réservé aux comptes créateur" };
   }
 
@@ -36,7 +38,7 @@ export async function completeCreatorProfileAction(
 
   if (avatar && avatar.size > 0) {
     const extension = avatar.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/avatar.${extension}`;
+    const path = `${auth.user.id}/avatar.${extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
@@ -53,7 +55,7 @@ export async function completeCreatorProfileAction(
   }
 
   const { error: profileError } = await supabase.from("creator_profiles").insert({
-    user_id: user.id,
+    user_id: auth.user.id,
     username,
     avatar_url: avatarUrl,
   });

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { challengeSchema } from "./schema";
 
 export type CreateChallengeState = {
@@ -32,18 +33,17 @@ export async function createChallengeAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "merchant") {
+  if (!auth || auth.role !== "merchant") {
     return { error: "Accès réservé aux comptes pro" };
   }
 
   const { data: merchantProfile } = await supabase
     .from("merchant_profiles")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (!merchantProfile) {

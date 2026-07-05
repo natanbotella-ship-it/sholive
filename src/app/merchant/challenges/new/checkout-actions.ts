@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 
 export type CheckoutState = {
@@ -18,11 +19,10 @@ export async function createCheckoutSessionAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "merchant") {
+  if (!auth || auth.role !== "merchant") {
     return { error: "Accès réservé aux comptes pro" };
   }
 

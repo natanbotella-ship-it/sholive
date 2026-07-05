@@ -14,7 +14,10 @@ alter table profiles enable row level security;
 -- Select restreint à l'owner : email est une PII, rien dans les 20 blocs n'a besoin de lire le
 -- profil d'un autre utilisateur (les pages publiques passent par merchant_profiles/creator_profiles).
 create policy "profiles visibles par leur owner" on profiles for select using (auth.uid() = id);
-create policy "profiles modifiables par leur owner" on profiles for update using (auth.uid() = id);
+-- Volontairement AUCUNE policy update/insert/delete : les rows sont écrites uniquement
+-- par le trigger handle_new_user (SECURITY DEFINER). Une policy update owner permettrait
+-- à un utilisateur de changer son propre `role` via l'API REST (auto-escalade creator ↔
+-- merchant) — supprimée à la revue du 2026-07-05.
 
 -- Trigger : crée automatiquement la row profiles à l'inscription (SECURITY DEFINER, bypass RLS).
 -- role et age_confirmed proviennent des métadonnées passées à supabase.auth.signUp({ options: { data: { role, age_confirmed } } }).
@@ -56,7 +59,15 @@ create table merchant_profiles (
 
 alter table merchant_profiles enable row level security;
 create policy "merchant profiles visibles par tous" on merchant_profiles for select using (true);
-create policy "merchant profiles modifiables par leur owner" on merchant_profiles for all using (auth.uid() = user_id);
+-- with check : seul un compte dont profiles.role = 'merchant' (source de vérité, écrite
+-- par le trigger) peut créer/modifier un profil pro. Sans ce contrôle, n'importe quel
+-- compte pouvait s'insérer un profil de l'autre rôle (user_metadata étant forgeable).
+create policy "merchant profiles modifiables par leur owner" on merchant_profiles for all
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and role = 'merchant')
+  );
 
 -- 2b. Contact privé marchand (téléphone) — séparé de merchant_profiles pour ne pas l'exposer publiquement
 create table merchant_contacts (
@@ -88,7 +99,13 @@ create table creator_profiles (
 
 alter table creator_profiles enable row level security;
 create policy "creator profiles visibles par tous" on creator_profiles for select using (true);
-create policy "creator profiles modifiables par leur owner" on creator_profiles for all using (auth.uid() = user_id);
+-- with check : même principe que merchant_profiles — profiles.role fait autorité.
+create policy "creator profiles modifiables par leur owner" on creator_profiles for all
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and role = 'creator')
+  );
 
 -- 4. Challenges
 -- Statuts : draft (créé, pas payé) -> awaiting_payment (Checkout Session créée, paiement non confirmé)

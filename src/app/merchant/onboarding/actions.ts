@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { merchantProfileSchema } from "./schema";
 
 export type MerchantOnboardingState = {
@@ -23,11 +24,11 @@ export async function completeMerchantProfileAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth) :
+  // c'est ce contrôle qui empêche un compte creator de se créer un profil pro.
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "merchant") {
+  if (!auth || auth.role !== "merchant") {
     return { error: "Accès réservé aux comptes pro" };
   }
 
@@ -35,7 +36,7 @@ export async function completeMerchantProfileAction(
 
   const { data: merchantProfile, error: profileError } = await supabase
     .from("merchant_profiles")
-    .insert({ user_id: user.id, business_name: businessName, city })
+    .insert({ user_id: auth.user.id, business_name: businessName, city })
     .select("id")
     .single();
 

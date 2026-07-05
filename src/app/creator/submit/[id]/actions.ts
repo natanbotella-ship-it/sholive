@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { levelForXp } from "@/lib/xp";
 import { submissionSchema } from "./schema";
 
@@ -33,11 +34,10 @@ export async function submitAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
 
-  if (!user || user.user_metadata?.role !== "creator") {
+  if (!auth || auth.role !== "creator") {
     return { error: "Accès réservé aux comptes créateur" };
   }
 
@@ -65,7 +65,7 @@ export async function submitAction(
   const { data: creatorProfile } = await supabase
     .from("creator_profiles")
     .select("id, xp")
-    .eq("user_id", user.id)
+    .eq("user_id", auth.user.id)
     .maybeSingle();
 
   if (!creatorProfile) {

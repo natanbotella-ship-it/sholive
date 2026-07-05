@@ -89,3 +89,35 @@ revoke insert, update, delete on table submissions from anon, authenticated;
 grant insert (challenge_id, creator_id, tiktok_url, reels_url, shorts_url,
   declared_views, declared_saves, declared_likes, declared_shares)
   on submissions to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 7. Inscription creator sans certification 18+ possible via l'API directe
+-- Le formulaire /register impose la checkbox (Zod), mais un signUp direct via
+-- l'API Supabase (clé anon publique) créait un creator avec age_confirmed_at
+-- NULL — le garde-fou légal de CLAUDE.md exige "non cochée = inscription
+-- bloquée" avec preuve stockée. Le trigger refuse désormais l'inscription.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if new.raw_user_meta_data->>'role' = 'creator'
+     and coalesce(new.raw_user_meta_data->>'age_confirmed', '') <> 'true' then
+    raise exception 'inscription creator refusée : certification 18+ manquante';
+  end if;
+
+  insert into public.profiles (id, email, role, age_confirmed_at)
+  values (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'role',
+    case
+      when new.raw_user_meta_data->>'role' = 'creator'
+      then now()
+      else null
+    end
+  );
+  return new;
+end;
+$$;

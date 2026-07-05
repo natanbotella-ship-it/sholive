@@ -28,6 +28,15 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
+  -- Garde-fou légal (CLAUDE.md) : la certification 18+ est obligatoire pour un
+  -- creator, "non cochée = inscription bloquée". Le formulaire /register l'impose
+  -- déjà (Zod), mais un signUp direct via l'API Supabase la contournait et créait
+  -- un créateur sans preuve age_confirmed_at. Ajouté à la revue du 2026-07-05.
+  if new.raw_user_meta_data->>'role' = 'creator'
+     and coalesce(new.raw_user_meta_data->>'age_confirmed', '') <> 'true' then
+    raise exception 'inscription creator refusée : certification 18+ manquante';
+  end if;
+
   insert into public.profiles (id, email, role, age_confirmed_at)
   values (
     new.id,
@@ -35,7 +44,6 @@ begin
     new.raw_user_meta_data->>'role',
     case
       when new.raw_user_meta_data->>'role' = 'creator'
-       and new.raw_user_meta_data->>'age_confirmed' = 'true'
       then now()
       else null
     end

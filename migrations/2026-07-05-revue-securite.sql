@@ -13,3 +13,13 @@
 -- gagnant s'occupe du Transfer).
 alter table payouts
   add constraint payouts_challenge_creator_unique unique (challenge_id, creator_id);
+
+-- ---------------------------------------------------------------------------
+-- 2. Challenges non payés visibles publiquement
+-- La policy publique masquait seulement les drafts : un challenge awaiting_payment
+-- (Checkout créée mais jamais payée) restait lisible par tous via /challenges/[id]
+-- et pouvait recevoir des soumissions. Le code vérifie désormais status = 'active'
+-- à la soumission ; la policy est resserrée en défense en profondeur.
+drop policy "challenges non-draft visibles par tous" on challenges;
+create policy "challenges lancés visibles par tous" on challenges for select
+  using (status not in ('draft', 'awaiting_payment'));

@@ -19,7 +19,7 @@ export default async function ChallengeDetailPage({
   const { data: challenge } = await supabase
     .from("challenges")
     .select(
-      "id, title, description, brief, prize_pool, prize_distribution, submission_deadline, vote_deadline, merchant_profiles!inner(business_name, city)",
+      "id, title, description, brief, prize_pool, prize_distribution, status, submission_deadline, vote_deadline, merchant_profiles!inner(business_name, city)",
     )
     .eq("id", params.id)
     .single();
@@ -39,8 +39,12 @@ export default async function ChallengeDetailPage({
 
   const submissionDeadlinePassed =
     new Date(challenge.submission_deadline) <= new Date();
+  // status === "active" : un challenge non payé (awaiting_payment) ou déjà en
+  // vote/finalisé ne doit pas proposer de participer, même si sa deadline est future.
   const canParticipate =
-    user?.user_metadata?.role === "creator" && !submissionDeadlinePassed;
+    challenge.status === "active" &&
+    user?.user_metadata?.role === "creator" &&
+    !submissionDeadlinePassed;
 
   const brief = challenge.brief as Brief | null;
   const distribution = challenge.prize_distribution as Record<

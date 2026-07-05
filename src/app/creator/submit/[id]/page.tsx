@@ -11,7 +11,7 @@ export default async function SubmitPage({
 
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("id, title, submission_deadline")
+    .select("id, title, status, submission_deadline")
     .eq("id", params.id)
     .single();
 
@@ -49,7 +49,11 @@ export default async function SubmitPage({
         Participer : {challenge.title}
       </h1>
 
-      {deadlinePassed ? (
+      {challenge.status !== "active" ? (
+        <p className="text-sm text-red-600">
+          Ce challenge n&apos;est pas ouvert aux soumissions.
+        </p>
+      ) : deadlinePassed ? (
         <p className="text-sm text-red-600">
           La deadline de soumission pour ce challenge est dépassée.
         </p>

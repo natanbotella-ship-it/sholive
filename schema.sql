@@ -120,8 +120,11 @@ create table challenges (
 );
 
 alter table challenges enable row level security;
--- Les drafts (non payés) ne sont visibles que par leur propriétaire, via la policy "gérés par leur merchant" ci-dessous.
-create policy "challenges non-draft visibles par tous" on challenges for select using (status <> 'draft');
+-- Les challenges non lancés (draft ET awaiting_payment : prize pool jamais encaissé)
+-- ne sont visibles que par leur propriétaire, via la policy "gérés par leur merchant"
+-- ci-dessous. Resserrée à la revue du 2026-07-05 : awaiting_payment était public.
+create policy "challenges lancés visibles par tous" on challenges for select
+  using (status not in ('draft', 'awaiting_payment'));
 create policy "challenges gérés par leur merchant" on challenges for all
   using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
 

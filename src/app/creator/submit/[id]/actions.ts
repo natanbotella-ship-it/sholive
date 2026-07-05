@@ -43,12 +43,19 @@ export async function submitAction(
 
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("id, submission_deadline")
+    .select("id, status, submission_deadline")
     .eq("id", challengeId)
     .single();
 
   if (!challenge) {
     return { error: "Challenge introuvable" };
+  }
+
+  // Seul un challenge "active" a encaissé son prize pool : un challenge
+  // awaiting_payment (Checkout créée mais jamais payée) ne doit pas accumuler
+  // de soumissions ni distribuer d'XP pour une cagnotte qui n'existe pas.
+  if (challenge.status !== "active") {
+    return { error: "Ce challenge n'est pas ouvert aux soumissions" };
   }
 
   if (new Date(challenge.submission_deadline) <= new Date()) {

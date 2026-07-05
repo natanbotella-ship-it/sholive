@@ -184,7 +184,11 @@ create table payouts (
   status text not null default 'awaiting_onboarding'
     check (status in ('awaiting_onboarding','pending','paid','failed','refunded')),
   stripe_transfer_id text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Un seul payout par créateur et par challenge : verrou DB contre les créations
+  -- concurrentes (le contrôle applicatif "existe déjà ?" n'est pas atomique).
+  -- Ajoutée à la revue du 2026-07-05 (migrations/2026-07-05-revue-securite.sql).
+  unique (challenge_id, creator_id)
 );
 
 alter table payouts enable row level security;

@@ -275,6 +275,9 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
       .select("id")
       .single();
 
+    // payout null = insert refusé, notamment 23505 (contrainte unique
+    // challenge_id+creator_id) quand un appel concurrent a déjà créé ce payout :
+    // c'est lui qui s'occupe du Transfer, on passe au rang suivant.
     if (
       payout &&
       creatorProfile?.stripe_onboarding_status === "complete" &&

@@ -44,8 +44,14 @@ export async function POST(request: Request) {
   if (event.type === "account.updated") {
     const account = event.data.object as Stripe.Account;
 
+    // payouts_enabled, pas charges_enabled : le compte Connect est créé avec la
+    // seule capability "transfers" (pas de card_payments), donc charges_enabled
+    // ne passe jamais à true pour ces comptes — le statut n'aurait jamais atteint
+    // "complete" et les payouts seraient restés bloqués en awaiting_onboarding.
+    // payouts_enabled correspond exactement à "identité + IBAN validés, l'argent
+    // peut atteindre le compte bancaire".
     const newStatus =
-      account.details_submitted && account.charges_enabled
+      account.details_submitted && account.payouts_enabled
         ? "complete"
         : account.requirements?.disabled_reason
           ? "restricted"

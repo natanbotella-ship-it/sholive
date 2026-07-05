@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_STATUS_LABELS } from "@/lib/challenge-status";
+import { formatDateTimeFr } from "@/lib/format-date";
 
 export default async function MerchantDashboardPage() {
   const supabase = createClient();
@@ -56,9 +57,7 @@ export default async function MerchantDashboardPage() {
                 </span>
                 <span className="text-foreground/60">
                   Deadline soumission :{" "}
-                  {new Date(challenge.submission_deadline).toLocaleString(
-                    "fr-FR",
-                  )}
+                  {formatDateTimeFr(challenge.submission_deadline)}
                 </span>
               </Link>
             </li>

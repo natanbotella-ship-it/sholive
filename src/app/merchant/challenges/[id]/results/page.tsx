@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateTimeFr } from "@/lib/format-date";
 import { PAYOUT_STATUS_LABELS } from "@/lib/payout-status";
 import { ResultsForm } from "./results-form";
 
@@ -90,7 +91,7 @@ export default async function MerchantChallengeResultsPage({
         ) : (
           <p className="text-sm text-foreground/60">
             Les résultats seront disponibles après la deadline de vote du{" "}
-            {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}.
+            {formatDateTimeFr(challenge.vote_deadline)}.
           </p>
         )}
       </main>

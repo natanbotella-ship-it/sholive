@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_STATUS_LABELS } from "@/lib/challenge-status";
+import { formatDateTimeFr } from "@/lib/format-date";
 
 export default async function MerchantChallengeDetailPage({
   params,
@@ -58,11 +59,9 @@ export default async function MerchantChallengeDetailPage({
         {" — "}Prize pool {challenge.prize_pool}€
       </p>
       <p className="text-sm text-foreground/60">
-        Deadline soumission :{" "}
-        {new Date(challenge.submission_deadline).toLocaleString("fr-FR")}
+        Deadline soumission : {formatDateTimeFr(challenge.submission_deadline)}
         {" · "}
-        Deadline vote :{" "}
-        {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}
+        Deadline vote : {formatDateTimeFr(challenge.vote_deadline)}
       </p>
 
       <div className="flex flex-wrap gap-3">

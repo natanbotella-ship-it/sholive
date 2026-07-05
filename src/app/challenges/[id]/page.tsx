@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateTimeFr } from "@/lib/format-date";
 
 type Brief = {
   concept?: string;
@@ -107,11 +108,11 @@ export default async function ChallengeDetailPage({
         )}
         <span>
           Date limite de soumission :{" "}
-          {new Date(challenge.submission_deadline).toLocaleString("fr-FR")}
+          {formatDateTimeFr(challenge.submission_deadline)}
         </span>
         <span>
           Date limite de vote :{" "}
-          {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}
+          {formatDateTimeFr(challenge.vote_deadline)}
         </span>
         <span>{submissionsCount ?? 0} soumission(s) pour l&apos;instant</span>
       </div>

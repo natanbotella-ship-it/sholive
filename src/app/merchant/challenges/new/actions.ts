@@ -26,6 +26,7 @@ export async function createChallengeAction(
     rank2: formData.get("rank2"),
     rank3: formData.get("rank3"),
     submissionDeadline: formData.get("submissionDeadline"),
+    submissionDeadlineIso: formData.get("submissionDeadlineIso") || undefined,
   });
 
   if (!parsed.success) {
@@ -62,9 +63,12 @@ export async function createChallengeAction(
     rank2,
     rank3,
     submissionDeadline,
+    submissionDeadlineIso,
   } = parsed.data;
 
-  const submissionDeadlineDate = new Date(submissionDeadline);
+  // L'ISO client (fuseau du merchant) fait foi ; la valeur brute datetime-local
+  // n'est qu'un fallback sans JS, interprétée dans le fuseau du serveur.
+  const submissionDeadlineDate = new Date(submissionDeadlineIso || submissionDeadline);
   const voteDeadlineDate = new Date(
     submissionDeadlineDate.getTime() + 7 * 24 * 60 * 60 * 1000,
   );

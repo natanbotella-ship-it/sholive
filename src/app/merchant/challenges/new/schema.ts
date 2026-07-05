@@ -37,12 +37,21 @@ export const challengeSchema = z
       .min(10, "Entre 10 et 25%")
       .max(25, "Entre 10 et 25%"),
     submissionDeadline: z.string().min(1, "Deadline requise"),
+    // Rempli côté client (JS) : la saisie datetime-local est une heure locale SANS
+    // fuseau, que le serveur (UTC sur Vercel) interpréterait décalée de 1-2 h. Le
+    // navigateur la convertit en instant ISO dans le fuseau du merchant. Optionnel :
+    // sans JS, fallback sur l'interprétation serveur de submissionDeadline.
+    submissionDeadlineIso: z.string().optional(),
   })
   .refine((data) => data.rank1 + data.rank2 + data.rank3 === 100, {
     message: "La répartition doit sommer à exactement 100%",
     path: ["rank3"],
   })
-  .refine((data) => new Date(data.submissionDeadline) > new Date(), {
-    message: "La deadline de soumission doit être dans le futur",
-    path: ["submissionDeadline"],
-  });
+  .refine(
+    (data) =>
+      new Date(data.submissionDeadlineIso || data.submissionDeadline) > new Date(),
+    {
+      message: "La deadline de soumission doit être dans le futur",
+      path: ["submissionDeadline"],
+    },
+  );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { formatDateFr } from "@/lib/format-date";
 
 export default async function ChallengesPage({
   searchParams,
@@ -70,10 +71,7 @@ export default async function ChallengesPage({
                 Prize pool : {challenge.prize_pool}€
               </span>
               <span className="text-sm text-foreground/60">
-                Deadline :{" "}
-                {new Date(challenge.submission_deadline).toLocaleDateString(
-                  "fr-FR",
-                )}
+                Deadline : {formatDateFr(challenge.submission_deadline)}
               </span>
             </li>
           ))}

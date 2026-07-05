@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatDateTimeFr } from "@/lib/format-date";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { VoteForm } from "./vote-form";
 
@@ -79,7 +80,7 @@ export default async function MerchantChallengeVotePage({
         <h1 className="text-2xl font-bold text-primary">Vote</h1>
         <p className="text-sm text-foreground/60">
           Les soumissions sont encore ouvertes jusqu&apos;au{" "}
-          {new Date(challenge.submission_deadline).toLocaleString("fr-FR")}.
+          {formatDateTimeFr(challenge.submission_deadline)}.
           Reviens après cette date pour voter.
         </p>
       </main>
@@ -139,7 +140,7 @@ export default async function MerchantChallengeVotePage({
       <p className="text-sm text-foreground/60">
         Choisis ta soumission gagnante parmi le top 10 (classé par score
         métriques). Deadline de vote :{" "}
-        {new Date(challenge.vote_deadline).toLocaleString("fr-FR")}.
+        {formatDateTimeFr(challenge.vote_deadline)}.
       </p>
 
       {top10.length === 0 ? (

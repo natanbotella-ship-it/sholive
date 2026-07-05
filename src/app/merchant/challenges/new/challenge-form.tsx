@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createChallengeAction, type CreateChallengeState } from "./actions";
 import { PayButton } from "./pay-button";
@@ -21,6 +22,10 @@ function SubmitButton() {
 
 export function ChallengeForm() {
   const [state, formAction] = useFormState(createChallengeAction, initialState);
+  // datetime-local produit une heure locale sans fuseau : convertie ici en instant
+  // ISO dans le fuseau du navigateur (celui du merchant), sinon le serveur (UTC en
+  // prod) l'interpréterait avec 1-2 h de décalage.
+  const [deadlineIso, setDeadlineIso] = useState("");
 
   if (state.success && state.challengeId) {
     return (
@@ -191,8 +196,14 @@ export function ChallengeForm() {
           name="submissionDeadline"
           type="datetime-local"
           required
+          onChange={(e) =>
+            setDeadlineIso(
+              e.target.value ? new Date(e.target.value).toISOString() : "",
+            )
+          }
           className="rounded-md border px-3 py-2 text-sm"
         />
+        <input type="hidden" name="submissionDeadlineIso" value={deadlineIso} />
       </div>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}

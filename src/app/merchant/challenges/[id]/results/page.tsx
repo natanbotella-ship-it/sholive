@@ -57,6 +57,21 @@ export default async function MerchantChallengeResultsPage({
     );
   }
 
+  // Un challenge jamais payé (draft/awaiting_payment) ne doit pas proposer la
+  // finalisation — l'action la refuse aussi côté serveur.
+  if (challenge.status === "draft" || challenge.status === "awaiting_payment") {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-8">
+        {backLink}
+        <h1 className="text-2xl font-bold text-primary">Résultats</h1>
+        <p className="text-sm text-foreground/60">
+          Ce challenge n&apos;a pas été lancé (prize pool non payé), il n&apos;y a
+          pas de résultats à calculer.
+        </p>
+      </main>
+    );
+  }
+
   if (challenge.status !== "results_finalized") {
     const voteDeadlinePassed = new Date(challenge.vote_deadline) <= new Date();
 

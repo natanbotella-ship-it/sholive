@@ -64,6 +64,14 @@ export async function finalizeChallengeResultsAction(
     return { refunded: true };
   }
 
+  // Un challenge draft/awaiting_payment n'a jamais encaissé son prize pool :
+  // le finaliser passerait en "refunded" (instruction de rembourser un argent
+  // jamais collecté) ou créerait des payouts sans fonds. Seuls active/voting
+  // sont finalisables.
+  if (challenge.status !== "active" && challenge.status !== "voting") {
+    return { error: "Ce challenge n'a jamais été lancé (prize pool non payé)" };
+  }
+
   if (new Date(challenge.vote_deadline) > new Date()) {
     return { error: "La deadline de vote n'est pas encore passée" };
   }

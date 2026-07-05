@@ -15,7 +15,7 @@ Marketplace de compétition vidéo locale, nom : **Sholive**. Lancement exclusif
 - Supabase (PostgreSQL + Auth email/password + Storage avatars)
 - Stripe (Checkout pour la collecte, Connect Express pour les payouts créateurs)
 - Vercel (hébergement)
-- Tailwind CSS — couleur primaire violet `#7C3AED`, police Inter
+- Tailwind CSS — identité « terracotta & sapin » (depuis le 2026-07-05, remplace le violet #7C3AED) : primaire terracotta `#A63A1C`, accent vert sapin `#205C43`, fond crème `#FAF5EC`, police Inter. Les tokens (modes clair + sombre, contrastes AA vérifiés) vivent dans `src/app/globals.css` + `tailwind.config.ts` ; utiliser les classes composant de `globals.css` (`btn-primary`, `btn-outline`, `card`, `input`, `badge`, `link`, `alert-error`) plutôt que des chaînes utilitaires ad hoc
 - Interface 100% français, aucun texte en anglais visible utilisateur
 
 ## Paiements — Stripe Connect complet

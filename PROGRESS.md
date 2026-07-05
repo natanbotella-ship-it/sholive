@@ -20,7 +20,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 15 — Résultats et déclenchement des payouts
 - [x] Bloc 16 — Profil créateur public
 - [x] Bloc 17 — Dashboard créateur
-- [ ] Bloc 18 — Landing page
+- [x] Bloc 18 — Landing page
 - [ ] Bloc 19 — Tests end-to-end
 
 ## Notes libres (bugs connus, décisions prises en cours de route)
@@ -137,3 +137,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - `/creator/profile` : édition username + avatar (réutilise `creatorProfileSchema` du Bloc 05, même validation) — conserve l'avatar existant si aucun nouveau fichier n'est fourni, gère le conflit d'unicité (23505) sans planter si le username choisi est déjà pris par un autre compte
   - Labels de statut (`ONBOARDING_STATUS_LABELS`, `PAYOUT_STATUS_LABELS`) extraits dans `src/lib/` — 2e usage de chacun (déjà présents aux Blocs 11/15), même logique d'extraction que `CHALLENGE_STATUS_LABELS` au Bloc 12
   - Testé contre le serveur dev réel : dashboard affiche correctement soumission active + soumission classée (rang #1, score), statut onboarding + lien, payout `awaiting_onboarding` ; page profil pré-remplie avec le username actuel ; redirection onboarding si profil manquant. Mutation testée par simulation (même limite `useFormState` qu'aux Blocs 13/14/15) : changement de username OK, re-soumission du même username sans erreur, doublon avec un autre compte correctement rejeté
+
+- 2026-07-04 : Bloc 18 (landing page) terminé. Design volontairement minimal (mêmes classes Tailwind que le reste du site) — Natan personnalisera l'ensemble du visuel plus tard, pas de passe esthétique dédiée à ce stade.
+  - Page `/` : pitch + CTA double vers `/register?role=merchant` et `/register?role=creator`, top 3 challenges actifs (même requête que `/challenges`, limitée à 3)
+  - `/register` accepte désormais `?role=merchant|creator` en query param pour présélectionner le radio du formulaire (`RegisterForm` reçoit `initialRole`, avant codé en dur sur `creator`)
+  - Testé contre le serveur dev réel : challenge actif affiché, brouillon bien absent, les deux CTA pointent vers les bonnes query strings, `?role=merchant` précoche bien le radio "Pro" (`checked=""` vérifié dans le HTML brut, absent sur "Créateur")

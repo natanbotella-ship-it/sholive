@@ -19,9 +19,13 @@ function SubmitButton() {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({
+  initialRole = "creator",
+}: {
+  initialRole?: "creator" | "merchant";
+}) {
   const [state, formAction] = useFormState(registerAction, initialState);
-  const [role, setRole] = useState<"creator" | "merchant">("creator");
+  const [role, setRole] = useState<"creator" | "merchant">(initialRole);
 
   if (state.success) {
     return (

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 
@@ -70,13 +71,18 @@ export async function createCheckoutSessionAction(
     return { error: "Impossible de créer la session de paiement" };
   }
 
-  await supabase
+  // status et stripe_checkout_session_id sont des colonnes privilégiées (le client
+  // authentifié n'a plus de grant update sur challenges — un merchant ne doit pas
+  // pouvoir écrire un statut lui-même). Service role après les vérifications
+  // d'ownership (lecture RLS) et de statut draft ci-dessus.
+  await createAdminClient()
     .from("challenges")
     .update({
       stripe_checkout_session_id: session.id,
       status: "awaiting_payment",
     })
-    .eq("id", challengeId);
+    .eq("id", challengeId)
+    .eq("status", "draft");
 
   redirect(session.url);
 }

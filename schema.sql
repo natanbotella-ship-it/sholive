@@ -145,6 +145,16 @@ create policy "challenges lancés visibles par tous" on challenges for select
 create policy "challenges gérés par leur merchant" on challenges for all
   using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
 
+-- Grants de colonnes (revue 2026-07-05) : la RLS limite QUELLES rows un merchant touche,
+-- pas QUELLES colonnes. Sans ces revokes, un merchant pouvait via l'API REST passer son
+-- draft en 'active' sans payer (status/payment_status), ou gonfler prize_pool après
+-- paiement pour déclencher des payouts supérieurs aux fonds encaissés. Le client
+-- authentifié ne peut plus qu'insérer les colonnes métier ; toutes les transitions de
+-- statut passent par le service role côté serveur (webhook Stripe, Server Actions).
+revoke insert, update, delete on table challenges from anon, authenticated;
+grant insert (merchant_id, title, description, brief, prize_pool, prize_distribution,
+  submission_deadline, vote_deadline) on challenges to authenticated;
+
 -- 5. Soumissions
 create table submissions (
   id uuid primary key default gen_random_uuid(),

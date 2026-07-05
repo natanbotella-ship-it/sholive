@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { VoteForm } from "./vote-form";
 
@@ -38,13 +39,16 @@ export default async function MerchantChallengeVotePage({
     new Date(challenge.submission_deadline) <= new Date();
 
   // Transition paresseuse active -> voting (pas de cron dans la stack) : appliquée par
-  // le premier accès à cette page après submission_deadline. Écriture sur sa propre
-  // row de challenge, la RLS owner standard suffit (pas besoin de service role ici).
+  // le premier accès à cette page après submission_deadline. Service role : status est
+  // une colonne privilégiée (plus de grant update client sur challenges), l'ownership
+  // a été vérifié explicitement ci-dessus. Conditionné sur le statut courant pour ne
+  // pas écraser une transition concurrente (finalisation dans un autre onglet).
   if (challenge.status === "active" && submissionDeadlinePassed) {
-    await supabase
+    await createAdminClient()
       .from("challenges")
       .update({ status: "voting" })
-      .eq("id", challenge.id);
+      .eq("id", challenge.id)
+      .eq("status", "active");
     challenge.status = "voting";
   }
 

@@ -50,3 +50,16 @@ create policy "creator profiles modifiables par leur owner" on creator_profiles 
     auth.uid() = user_id
     and exists (select 1 from profiles where id = auth.uid() and role = 'creator')
   );
+
+-- ---------------------------------------------------------------------------
+-- 4. Colonnes privilégiées de challenges écrivables par le merchant via l'API REST
+-- La RLS restreint les rows, pas les colonnes : un merchant pouvait passer son draft
+-- en 'active' sans payer (status/payment_status), gonfler prize_pool après paiement
+-- (payouts calculés dessus -> transfers supérieurs aux fonds encaissés), déplacer les
+-- deadlines, ou supprimer un challenge finalisé (cascade sur submissions/payouts —
+-- un payout awaiting_onboarding disparaissait avant le virement du gagnant).
+-- Le client authentifié ne peut plus qu'insérer les colonnes métier du brouillon ;
+-- transitions de statut et écritures Stripe passent par le service role.
+revoke insert, update, delete on table challenges from anon, authenticated;
+grant insert (merchant_id, title, description, brief, prize_pool, prize_distribution,
+  submission_deadline, vote_deadline) on challenges to authenticated;

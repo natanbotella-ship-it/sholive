@@ -86,10 +86,14 @@ export async function finalizeChallengeResultsAction(
     .eq("challenge_id", challengeId);
 
   if ((submissionsCount ?? 0) < MIN_SUBMISSIONS) {
+    // Conditionné sur active/voting : une requête concurrente qui aurait déjà
+    // fait la transition ne doit pas être écrasée (le décompte étant le même,
+    // l'issue est identique — refunded dans les deux cas).
     await admin
       .from("challenges")
       .update({ status: "refunded" })
-      .eq("id", challengeId);
+      .eq("id", challengeId)
+      .in("status", ["active", "voting"]);
     return { refunded: true };
   }
 
@@ -153,6 +157,24 @@ export async function finalizeChallengeResultsAction(
       .eq("id", submission.id);
   }
 
+  // Verrou contre les finalisations concurrentes (double clic dans deux onglets) :
+  // les écritures de scores/rangs ci-dessus sont déterministes (les ré-écrire ne
+  // change rien), mais l'attribution d'XP/wins est un incrément — elle ne doit
+  // être exécutée que par la requête qui remporte la transition de statut. La
+  // vérification d'idempotence en début d'action ne suffit pas : deux requêtes
+  // simultanées lisent toutes les deux "voting" avant que l'une n'écrive.
+  const { data: claimed } = await admin
+    .from("challenges")
+    .update({ status: "results_finalized" })
+    .eq("id", challengeId)
+    .in("status", ["active", "voting"])
+    .select("id");
+
+  if (!claimed || claimed.length === 0) {
+    // Une requête concurrente a déjà finalisé : elle s'occupe de l'XP.
+    return { finalized: true };
+  }
+
   // XP top 3 (+50) et victoire (+100), cumulables : le gagnant reçoit +150 au total.
   const top3 = ranked.slice(0, 3);
   for (let index = 0; index < top3.length; index++) {
@@ -176,11 +198,6 @@ export async function finalizeChallengeResultsAction(
         .eq("id", submission.creatorId);
     }
   }
-
-  await admin
-    .from("challenges")
-    .update({ status: "results_finalized" })
-    .eq("id", challengeId);
 
   return { finalized: true };
 }

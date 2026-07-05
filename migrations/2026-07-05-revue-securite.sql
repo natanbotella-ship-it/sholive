@@ -75,3 +75,17 @@ grant insert (merchant_id, title, description, brief, prize_pool, prize_distribu
 revoke insert, update, delete on table creator_profiles from anon, authenticated;
 grant insert (user_id, username, avatar_url) on creator_profiles to authenticated;
 grant update (username, avatar_url) on creator_profiles to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 6. Scores, rang et ancienneté des submissions forgeables par le créateur
+-- L'insert acceptait metric_score/merchant_score/total_score/rank pré-remplis
+-- (rank=1 = fausse victoire affichée sur le profil public /creators/[username])
+-- et un created_at antidaté (gagne les départages d'égalité, à l'ancienneté).
+-- La policy update owner n'était utilisée par aucune feature et permettait de
+-- modifier les stats déclarées après la deadline — voire rank/scores après
+-- finalisation. Scores/rangs ne s'écrivent que via service role (blocs 13/14).
+drop policy "submissions modifiables par leur créateur" on submissions;
+revoke insert, update, delete on table submissions from anon, authenticated;
+grant insert (challenge_id, creator_id, tiktok_url, reels_url, shorts_url,
+  declared_views, declared_saves, declared_likes, declared_shares)
+  on submissions to authenticated;

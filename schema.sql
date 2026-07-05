@@ -187,11 +187,23 @@ alter table submissions enable row level security;
 create policy "submissions visibles par tous" on submissions for select using (true);
 create policy "submissions créées par leur créateur" on submissions for insert
   with check (creator_id in (select id from creator_profiles where user_id = auth.uid()));
-create policy "submissions modifiables par leur créateur" on submissions for update
-  using (creator_id in (select id from creator_profiles where user_id = auth.uid()));
+-- Volontairement AUCUNE policy update/delete côté client : aucune feature du MVP ne
+-- modifie ou supprime une soumission, et une policy update owner permettait de changer
+-- les stats déclarées après la deadline (ou rank/scores après finalisation). Supprimée
+-- à la revue du 2026-07-05.
 -- Pas de policy pour l'écriture de merchant_score/metric_score/total_score/rank par le pro ou le système :
 -- ce sont des écritures cross-user privilégiées (bloc 13 vote, bloc 14 finalisation), faites via le client
 -- Supabase service role côté serveur après vérification de rôle, jamais via le client authentifié classique.
+
+-- Grants de colonnes (revue 2026-07-05) : sans ces revokes, l'insert acceptait aussi
+-- metric_score/merchant_score/total_score/rank pré-remplis (rank=1 = fausse victoire
+-- affichée sur le profil public) et un created_at antidaté (gagne les départages
+-- d'égalité, qui se font à l'ancienneté). Scores et rangs ne s'écrivent que via
+-- service role (vote bloc 13, finalisation bloc 14).
+revoke insert, update, delete on table submissions from anon, authenticated;
+grant insert (challenge_id, creator_id, tiktok_url, reels_url, shorts_url,
+  declared_views, declared_saves, declared_likes, declared_shares)
+  on submissions to authenticated;
 
 -- 6. Votes (vote du merchant sur le top 10 shortlist)
 create table votes (

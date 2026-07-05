@@ -24,3 +24,8 @@ npm-debug.log*
 
 # Claude Code — settings locaux, pas partagés
 .claude/settings.local.json
+
+# Stripe CLI — logs/pid du "stripe listen" lance en local pour le Bloc 19
+stripe-listen.log
+stripe-listen.err.log
+stripe-listen.pid

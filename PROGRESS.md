@@ -21,7 +21,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 16 — Profil créateur public
 - [x] Bloc 17 — Dashboard créateur
 - [x] Bloc 18 — Landing page
-- [ ] Bloc 19 — Tests end-to-end
+- [~] Bloc 19 — Tests end-to-end (guide préparé dans `E2E_TEST_GUIDE.md`, exécution manuelle par Natan à venir — nécessite une vraie clé Stripe test)
 
 ## Notes libres (bugs connus, décisions prises en cours de route)
 
@@ -142,3 +142,8 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - Page `/` : pitch + CTA double vers `/register?role=merchant` et `/register?role=creator`, top 3 challenges actifs (même requête que `/challenges`, limitée à 3)
   - `/register` accepte désormais `?role=merchant|creator` en query param pour présélectionner le radio du formulaire (`RegisterForm` reçoit `initialRole`, avant codé en dur sur `creator`)
   - Testé contre le serveur dev réel : challenge actif affiché, brouillon bien absent, les deux CTA pointent vers les bonnes query strings, `?role=merchant` précoche bien le radio "Pro" (`checked=""` vérifié dans le HTML brut, absent sur "Créateur")
+
+- 2026-07-04 : Bloc 19 (tests end-to-end) — guide préparé, **exécution non commencée**.
+  - Ce bloc est un parcours manuel (`BUILD_BLOCKS.md` : "parcours complet manuel guidé"), pas simulable via script comme les blocs précédents — paiement Stripe réel (carte test) et onboarding Connect réel nécessitent un vrai navigateur, pas de Playwright dans ce projet
+  - `E2E_TEST_GUIDE.md` créé : prérequis (clé Stripe test + Stripe CLI pour les webhooks en local), simplification assumée (1 compte créateur "héros" parcouru intégralement + 9 soumissions de remplissage injectées par script pour passer le seuil des 10, la logique de scoring elle-même étant déjà validée au Bloc 14), astuce pour ne pas attendre les 7 jours réels de `vote_deadline`, checklist complète A→D, section bugs trouvés
+  - Bloqué sur : `STRIPE_SECRET_KEY` toujours vide. Dès que Natan fournit une clé de test, reprendre `E2E_TEST_GUIDE.md`

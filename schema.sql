@@ -56,6 +56,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- handle_new_user() est SECURITY DEFINER, donc par défaut exécutable en RPC direct par
+-- anon/authenticated via /rest/v1/rpc/handle_new_user (relevé par l'audit Supabase get_advisors
+-- du 2026-07-06). Un trigger n'a besoin d'aucun grant EXECUTE pour se déclencher (invoqué par
+-- le moteur de trigger, jamais par un appel RPC), donc révoquer ne casse pas l'inscription —
+-- vérifié par un signup réel après coup. REVOKE FROM anon, authenticated ne suffit pas seul :
+-- Postgres grante EXECUTE à PUBLIC par défaut à la création d'une fonction, et anon/authenticated
+-- héritent de PUBLIC, il faut donc aussi révoquer sur PUBLIC.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
 -- 2. Profils marchand (colonnes publiques uniquement — cf. merchant_contacts pour le téléphone)
 create table merchant_profiles (
   id uuid primary key default gen_random_uuid(),
@@ -301,9 +310,14 @@ on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
-create policy "avatars publiquement lisibles"
-on storage.objects for select
-using (bucket_id = 'avatars');
+-- Pas de policy SELECT sur storage.objects pour ce bucket : un bucket "public" (ci-dessus)
+-- sert déjà les objets via URL directe (getPublicUrl) sans jamais passer par la RLS — une
+-- policy SELECT ne fait qu'autoriser le listing/download via l'API storage authentifiée,
+-- que l'app n'utilise pas pour les avatars. La policy "avatars publiquement lisibles" créée
+-- au bloc 05 autorisait le listing complet du bucket (relevé par get_advisors le 2026-07-06,
+-- lint "Public Bucket Allows Listing") — supprimée, vérifié après coup que la lecture
+-- publique d'un avatar existant fonctionne toujours et que le listing anonyme renvoie
+-- désormais un tableau vide.
 
 create policy "un creator peut uploader son propre avatar"
 on storage.objects for insert

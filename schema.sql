@@ -13,7 +13,10 @@ create table profiles (
 alter table profiles enable row level security;
 -- Select restreint à l'owner : email est une PII, rien dans les 20 blocs n'a besoin de lire le
 -- profil d'un autre utilisateur (les pages publiques passent par merchant_profiles/creator_profiles).
-create policy "profiles visibles par leur owner" on profiles for select using (auth.uid() = id);
+-- (select auth.uid()) plutôt que auth.uid() nu : évite la ré-évaluation ligne par ligne
+-- (advisory perf Supabase auth_rls_initplan, corrigé le 2026-07-07, aucun changement de
+-- comportement — même pattern sur toutes les policies équivalentes ci-dessous).
+create policy "profiles visibles par leur owner" on profiles for select using ((select auth.uid()) = id);
 -- Volontairement AUCUNE policy update/insert/delete : les rows sont écrites uniquement
 -- par le trigger handle_new_user (SECURITY DEFINER). Une policy update owner permettrait
 -- à un utilisateur de changer son propre `role` via l'API REST (auto-escalade creator ↔
@@ -80,10 +83,10 @@ create policy "merchant profiles visibles par tous" on merchant_profiles for sel
 -- par le trigger) peut créer/modifier un profil pro. Sans ce contrôle, n'importe quel
 -- compte pouvait s'insérer un profil de l'autre rôle (user_metadata étant forgeable).
 create policy "merchant profiles modifiables par leur owner" on merchant_profiles for all
-  using (auth.uid() = user_id)
+  using ((select auth.uid()) = user_id)
   with check (
-    auth.uid() = user_id
-    and exists (select 1 from profiles where id = auth.uid() and role = 'merchant')
+    (select auth.uid()) = user_id
+    and exists (select 1 from profiles where id = (select auth.uid()) and role = 'merchant')
   );
 
 -- 2b. Contact privé marchand (téléphone) — séparé de merchant_profiles pour ne pas l'exposer publiquement
@@ -96,7 +99,7 @@ create table merchant_contacts (
 
 alter table merchant_contacts enable row level security;
 create policy "contact marchand géré par leur owner" on merchant_contacts for all
-  using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
+  using (merchant_id in (select id from merchant_profiles where user_id = (select auth.uid())));
 
 -- 3. Profils créateur
 -- stripe_account_id / stripe_onboarding_status restent publics : pas de PII exploitable, simplifie le MVP.
@@ -118,10 +121,10 @@ alter table creator_profiles enable row level security;
 create policy "creator profiles visibles par tous" on creator_profiles for select using (true);
 -- with check : même principe que merchant_profiles — profiles.role fait autorité.
 create policy "creator profiles modifiables par leur owner" on creator_profiles for all
-  using (auth.uid() = user_id)
+  using ((select auth.uid()) = user_id)
   with check (
-    auth.uid() = user_id
-    and exists (select 1 from profiles where id = auth.uid() and role = 'creator')
+    (select auth.uid()) = user_id
+    and exists (select 1 from profiles where id = (select auth.uid()) and role = 'creator')
   );
 
 -- Grants de colonnes (revue 2026-07-05) : sans ces revokes, le créateur pouvait via
@@ -186,7 +189,7 @@ alter table challenges enable row level security;
 create policy "challenges lancés visibles par tous" on challenges for select
   using (status not in ('draft', 'awaiting_payment'));
 create policy "challenges gérés par leur merchant" on challenges for all
-  using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
+  using (merchant_id in (select id from merchant_profiles where user_id = (select auth.uid())));
 
 -- Grants de colonnes (revue 2026-07-05) : la RLS limite QUELLES rows un merchant touche,
 -- pas QUELLES colonnes. Sans ces revokes, un merchant pouvait via l'API REST passer son
@@ -221,7 +224,7 @@ create table submissions (
 alter table submissions enable row level security;
 create policy "submissions visibles par tous" on submissions for select using (true);
 create policy "submissions créées par leur créateur" on submissions for insert
-  with check (creator_id in (select id from creator_profiles where user_id = auth.uid()));
+  with check (creator_id in (select id from creator_profiles where user_id = (select auth.uid())));
 -- Volontairement AUCUNE policy update/delete côté client : aucune feature du MVP ne
 -- modifie ou supprime une soumission, et une policy update owner permettait de changer
 -- les stats déclarées après la deadline (ou rank/scores après finalisation). Supprimée
@@ -252,7 +255,7 @@ create table votes (
 
 alter table votes enable row level security;
 create policy "votes gérés par leur merchant" on votes for all
-  using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
+  using (merchant_id in (select id from merchant_profiles where user_id = (select auth.uid())));
 
 -- 7. Payouts
 -- status : awaiting_review (créé à la finalisation, DANS la fenêtre de litige de 72h — cf.
@@ -286,14 +289,14 @@ create table payouts (
 
 alter table payouts enable row level security;
 create policy "payouts visibles par leur créateur" on payouts for select
-  using (creator_id in (select id from creator_profiles where user_id = auth.uid()));
+  using (creator_id in (select id from creator_profiles where user_id = (select auth.uid())));
 -- Ajoutée au bloc 15 : sans ça, la page resultats du merchant (RLS standard, pas service role
 -- pour une simple lecture) ne voyait jamais les payouts de son propre challenge.
 create policy "payouts visibles par le merchant du challenge" on payouts for select
   using (
     challenge_id in (
       select id from challenges
-      where merchant_id in (select id from merchant_profiles where user_id = auth.uid())
+      where merchant_id in (select id from merchant_profiles where user_id = (select auth.uid()))
     )
   );
 -- Volontairement aucune policy insert/update : la création et la mise à jour des payouts (bloc 15,
@@ -338,3 +341,8 @@ create index on challenges (merchant_id, status);
 create index on challenges (status);
 create index on payouts (creator_id);
 create index on creator_profiles (stripe_onboarding_status);
+-- Ajoutés le 2026-07-07 (advisory perf Supabase unindexed_foreign_keys) : FK sans index
+-- couvrant, utilisées par de vraies requêtes (dashboard créateur, vote/scoring).
+create index on submissions (creator_id);
+create index on votes (merchant_id);
+create index on votes (submission_id);

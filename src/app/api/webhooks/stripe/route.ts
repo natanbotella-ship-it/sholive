@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyAdmin } from "@/lib/notify-admin";
+import { eurosToCents } from "@/lib/money";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -52,6 +53,26 @@ export async function POST(request: Request) {
     }
   }
 
+  // Repasse le challenge en "draft" si le pro n'a pas payé avant l'expiration de la
+  // Checkout Session (24h par défaut chez Stripe) — pre-mortem 2026-07-06 : sans ça, un
+  // paiement abandonné laissait le challenge bloqué en awaiting_payment. Le retry direct
+  // depuis awaiting_payment (createCheckoutSessionAction) rend ce webhook non bloquant
+  // pour relancer un paiement, mais garde le statut affiché cohérent avec la réalité.
+  if (event.type === "checkout.session.expired") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const challengeId = session.metadata?.challenge_id;
+
+    if (challengeId) {
+      const supabase = createAdminClient();
+      await supabase
+        .from("challenges")
+        .update({ status: "draft", stripe_checkout_session_id: null })
+        .eq("id", challengeId)
+        .eq("stripe_checkout_session_id", session.id)
+        .eq("status", "awaiting_payment");
+    }
+  }
+
   if (event.type === "account.updated") {
     const account = event.data.object as Stripe.Account;
 
@@ -94,7 +115,7 @@ export async function POST(request: Request) {
           try {
             const transfer = await stripe.transfers.create(
               {
-                amount: Math.round(Number(payout.amount) * 100),
+                amount: eurosToCents(Number(payout.amount)),
                 currency: "eur",
                 destination: account.id,
                 // Permet aux webhooks transfer.created/transfer.failed de retrouver

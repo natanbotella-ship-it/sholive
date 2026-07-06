@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_STATUS_LABELS } from "@/lib/challenge-status";
 import { formatDateTimeFr } from "@/lib/format-date";
+import { PayButton } from "@/app/merchant/challenges/new/pay-button";
 
 export default async function MerchantChallengeDetailPage({
   params,
@@ -72,6 +73,12 @@ export default async function MerchantChallengeDetailPage({
       </p>
 
       <div className="flex flex-wrap gap-3">
+        {/* draft (jamais payé) ET awaiting_payment (paiement abandonné/expiré sur
+            Stripe) — sinon un challenge resterait bloqué sans aucun moyen de payer
+            une fois sorti de l'écran de création (pre-mortem 2026-07-06). */}
+        {(challenge.status === "draft" || challenge.status === "awaiting_payment") && (
+          <PayButton challengeId={challenge.id} />
+        )}
         {(challenge.status === "active" || challenge.status === "voting") && (
           <Link
             href={`/merchant/challenges/${challenge.id}/vote`}

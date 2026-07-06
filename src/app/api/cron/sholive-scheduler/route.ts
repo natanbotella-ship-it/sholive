@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyAdmin } from "@/lib/notify-admin";
+import { eurosToCents } from "@/lib/money";
 import {
   createPayoutsForChallenge,
   finalizeChallengeCore,
@@ -83,7 +84,7 @@ export async function GET(request: Request) {
       try {
         const transfer = await stripe.transfers.create(
           {
-            amount: Math.round(Number(payout.amount) * 100),
+            amount: eurosToCents(Number(payout.amount)),
             currency: "eur",
             destination: creator.stripe_account_id,
             // Adosse le Transfer au paiement de CE challenge plutôt qu'à la balance

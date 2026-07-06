@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
+import { eurosToCents } from "@/lib/money";
 
 export type CheckoutState = {
   error?: string;
@@ -39,8 +40,12 @@ export async function createCheckoutSessionAction(
     return { error: "Challenge introuvable" };
   }
 
-  if (challenge.status !== "draft") {
-    return { error: "Ce challenge n'est plus en brouillon" };
+  // "draft" (première tentative) ET "awaiting_payment" (tentative précédente
+  // abandonnée/expirée sur la page Stripe) — sinon un challenge dont le pro a fermé
+  // l'onglet Checkout sans payer restait bloqué en awaiting_payment pour toujours,
+  // sans aucun moyen de relancer le paiement (pre-mortem 2026-07-06).
+  if (challenge.status !== "draft" && challenge.status !== "awaiting_payment") {
+    return { error: "Ce challenge ne peut plus être payé" };
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -53,7 +58,7 @@ export async function createCheckoutSessionAction(
         {
           price_data: {
             currency: "eur",
-            unit_amount: Math.round(challenge.prize_pool * 100),
+            unit_amount: eurosToCents(challenge.prize_pool),
             product_data: { name: `Prize pool — ${challenge.title}` },
           },
           quantity: 1,
@@ -82,7 +87,7 @@ export async function createCheckoutSessionAction(
       status: "awaiting_payment",
     })
     .eq("id", challengeId)
-    .eq("status", "draft");
+    .in("status", ["draft", "awaiting_payment"]);
 
   redirect(session.url);
 }

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { signOutAction } from "./actions";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -13,14 +16,19 @@ export const metadata: Metadata = {
   description: "Marketplace de compétition vidéo locale — Lyon",
 };
 
-// Header/footer volontairement statiques (aucune lecture de session ni requête DB) :
-// "Mon espace" pointe vers /creator/dashboard et laisse le middleware router — un
-// merchant y est redirigé vers /merchant/dashboard, un visiteur vers /login.
-export default function RootLayout({
+// Header lit la session (getAuthenticatedUser, jamais user_metadata — cf. lib/auth)
+// pour afficher clairement le statut de connexion et le rôle : avant le 2026-07-06,
+// le header était volontairement statique ("Mon espace" pointait toujours vers
+// /creator/dashboard et laissait le middleware router) — source de confusion en test
+// manuel (impossible de savoir si on est connecté, et en tant que quoi), et aucun
+// moyen de se déconnecter n'existait sur le site.
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const authUser = await getAuthenticatedUser(createClient());
+
   return (
     <html lang="fr">
       <body className={`${inter.variable} font-sans antialiased`}>
@@ -43,15 +51,40 @@ export default function RootLayout({
                 >
                   Challenges
                 </Link>
-                <Link
-                  href="/creator/dashboard"
-                  className="font-medium text-muted transition-colors hover:text-foreground"
-                >
-                  Mon espace
-                </Link>
-                <Link href="/register" className="btn-primary btn-sm">
-                  Créer un compte
-                </Link>
+                {authUser ? (
+                  <>
+                    <span className="badge">
+                      {authUser.role === "merchant" ? "Compte pro" : "Compte créateur"}
+                    </span>
+                    <Link
+                      href={
+                        authUser.role === "merchant"
+                          ? "/merchant/dashboard"
+                          : "/creator/dashboard"
+                      }
+                      className="font-medium text-muted transition-colors hover:text-foreground"
+                    >
+                      Mon espace
+                    </Link>
+                    <form action={signOutAction}>
+                      <button type="submit" className="btn-outline btn-sm">
+                        Déconnexion
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="font-medium text-muted transition-colors hover:text-foreground"
+                    >
+                      Connexion
+                    </Link>
+                    <Link href="/register" className="btn-primary btn-sm">
+                      Créer un compte
+                    </Link>
+                  </>
+                )}
               </nav>
             </div>
           </header>

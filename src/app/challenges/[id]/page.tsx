@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { formatDateTimeFr } from "@/lib/format-date";
 
 type Brief = {
@@ -34,9 +35,11 @@ export default async function ChallengeDetailPage({
     .select("id", { count: "exact", head: true })
     .eq("challenge_id", params.id);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth) :
+  // cette page manquait à la revue de sécurité du 2026-07-05, seul endroit restant
+  // à décider de l'affichage du bouton "Participer" sur un user_metadata.role
+  // modifiable côté client par l'utilisateur lui-même.
+  const authUser = await getAuthenticatedUser(supabase);
 
   const submissionDeadlinePassed =
     new Date(challenge.submission_deadline) <= new Date();
@@ -44,7 +47,7 @@ export default async function ChallengeDetailPage({
   // vote/finalisé ne doit pas proposer de participer, même si sa deadline est future.
   const canParticipate =
     challenge.status === "active" &&
-    user?.user_metadata?.role === "creator" &&
+    authUser?.role === "creator" &&
     !submissionDeadlinePassed;
 
   const brief = challenge.brief as Brief | null;

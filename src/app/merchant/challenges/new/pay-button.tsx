@@ -14,9 +14,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="btn-primary"
+      className="btn-accent w-full"
     >
-      {pending ? "Redirection..." : "Payer et lancer le challenge"}
+      {pending ? "Redirection vers Stripe..." : "Payer la cagnotte et lancer"}
     </button>
   );
 }
@@ -28,10 +28,14 @@ export function PayButton({ challengeId }: { challengeId: string }) {
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="flex w-full flex-col gap-2">
       <input type="hidden" name="challengeId" value={challengeId} />
       {state.error && <p className="alert-error">{state.error}</p>}
       <SubmitButton />
+      <p className="text-xs text-muted">
+        Paiement sécurisé par Stripe — remboursé intégralement s&apos;il y a
+        moins de 10 vidéos.
+      </p>
     </form>
   );
 }

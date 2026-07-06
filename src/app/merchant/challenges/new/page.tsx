@@ -21,8 +21,18 @@ export default async function NewChallengePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary-ink">Créer un challenge</h1>
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm text-muted">Espace pro</p>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          Créer un challenge
+        </h1>
+        <p className="text-sm text-muted">
+          Plus ton brief est précis, plus les vidéos ressembleront à ce que tu
+          imagines. Le challenge ne sera visible qu&apos;une fois la cagnotte
+          payée.
+        </p>
+      </div>
       <ChallengeForm />
     </main>
   );

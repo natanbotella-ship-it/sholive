@@ -331,3 +331,72 @@ export async function viewResultsAction(
 
   return { finalized: true };
 }
+
+export type ReportDisputeState = {
+  error?: string;
+  success?: boolean;
+};
+
+// Écran de vérification anti-fraude (pre-mortem 2026-07-06) : le scoring reposant
+// entièrement sur des stats auto-déclarées, le pro est la seule personne en position de
+// remarquer qu'un lien du top 3 ne correspond à aucune vraie vidéo. Ce signalement
+// bloque indéfiniment le sweep du cron (payouts.status 'awaiting_review' ne bouge plus
+// tant que challenges.results_disputed_at est rempli) — résolu manuellement par Natan
+// (pas d'UI de levée au MVP, cohérent avec le remboursement < 10 soumissions déjà manuel).
+export async function reportResultsDisputeAction(
+  _prevState: ReportDisputeState,
+  formData: FormData,
+): Promise<ReportDisputeState> {
+  const challengeId = formData.get("challengeId");
+  if (typeof challengeId !== "string" || !challengeId) {
+    return { error: "Challenge introuvable" };
+  }
+
+  const supabase = createClient();
+  const auth = await getAuthenticatedUser(supabase);
+
+  if (!auth || auth.role !== "merchant") {
+    return { error: "Accès réservé aux comptes pro" };
+  }
+
+  const { data: merchantProfile } = await supabase
+    .from("merchant_profiles")
+    .select("id")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+
+  if (!merchantProfile) {
+    return { error: "Profil pro introuvable" };
+  }
+
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("id, merchant_id, status")
+    .eq("id", challengeId)
+    .single();
+
+  if (!challenge || challenge.merchant_id !== merchantProfile.id) {
+    return { error: "Challenge introuvable" };
+  }
+
+  if (challenge.status !== "results_finalized") {
+    return { error: "Ce challenge n'a pas encore de résultats finalisés" };
+  }
+
+  // results_disputed_at est une colonne privilégiée (pas de grant update client sur
+  // challenges) : service role, après vérification d'ownership ci-dessus via RLS.
+  // Idempotent (is(...).null) : un second signalement n'écrase pas l'horodatage du premier.
+  const admin = createAdminClient();
+  await admin
+    .from("challenges")
+    .update({ results_disputed_at: new Date().toISOString() })
+    .eq("id", challengeId)
+    .is("results_disputed_at", null);
+
+  await notifyAdmin(
+    "Signalement de fraude sur un classement",
+    `Le pro a signalé un problème sur le classement du challenge ${challengeId}. Les payouts en attente (statut awaiting_review) sont bloqués jusqu'à résolution manuelle.`,
+  );
+
+  return { success: true };
+}

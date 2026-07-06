@@ -3,7 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTimeFr } from "@/lib/format-date";
 import { PAYOUT_STATUS_LABELS } from "@/lib/payout-status";
+import { DISPUTE_WINDOW_HOURS } from "@/lib/scheduling";
 import { ResultsForm } from "./results-form";
+import { DisputeForm } from "./dispute-form";
 
 export default async function MerchantChallengeResultsPage({
   params,
@@ -27,7 +29,9 @@ export default async function MerchantChallengeResultsPage({
 
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("id, title, merchant_id, status, vote_deadline")
+    .select(
+      "id, title, merchant_id, status, vote_deadline, results_finalized_at, results_disputed_at",
+    )
     .eq("id", params.id)
     .single();
 
@@ -101,7 +105,7 @@ export default async function MerchantChallengeResultsPage({
   const { data: submissions } = await supabase
     .from("submissions")
     .select(
-      "id, rank, metric_score, merchant_score, total_score, creator_profiles!inner(username)",
+      "id, rank, metric_score, merchant_score, total_score, tiktok_url, reels_url, shorts_url, creator_profiles!inner(username)",
     )
     .eq("challenge_id", challenge.id)
     .order("rank", { ascending: true });
@@ -135,6 +139,44 @@ export default async function MerchantChallengeResultsPage({
                 /50 · Score marchand {submission.merchant_score.toFixed(1)}/50
                 · Total {Number(submission.total_score).toFixed(1)}/100
               </span>
+              {/* Liens vidéo affichés seulement pour le top 3 (ceux qui seront payés) —
+                  écran de vérification anti-fraude, pre-mortem 2026-07-06 : le scoring
+                  reposant sur des stats auto-déclarées, c'est ici que tu peux repérer un
+                  lien bidon avant que le Transfer ne parte. */}
+              {submission.rank !== null && submission.rank <= 3 && (
+                <div className="flex flex-wrap gap-3">
+                  {submission.tiktok_url && (
+                    <a
+                      href={submission.tiktok_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="link"
+                    >
+                      TikTok
+                    </a>
+                  )}
+                  {submission.reels_url && (
+                    <a
+                      href={submission.reels_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="link"
+                    >
+                      Reels
+                    </a>
+                  )}
+                  {submission.shorts_url && (
+                    <a
+                      href={submission.shorts_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="link"
+                    >
+                      Shorts
+                    </a>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -165,6 +207,32 @@ export default async function MerchantChallengeResultsPage({
           </ul>
         )}
       </section>
+
+      {/* Fenêtre de litige (pre-mortem 2026-07-06) : tant qu'un payout est
+          "awaiting_review", aucun Transfer réel n'a encore été tenté — c'est la
+          fenêtre pour vérifier les liens ci-dessus et signaler un problème. */}
+      {payouts && payouts.length > 0 && (
+        <section className="flex flex-col gap-2 card">
+          <h2 className="text-lg font-semibold">Vérification anti-fraude</h2>
+          {challenge.results_disputed_at ? (
+            <p className="text-sm text-muted">
+              Signalement enregistré le{" "}
+              {formatDateTimeFr(challenge.results_disputed_at)}. Les paiements
+              en attente restent bloqués jusqu&apos;à vérification par Natan.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-muted">
+                Les paiements en attente ({DISPUTE_WINDOW_HOURS}h après la
+                finalisation) sont déclenchés automatiquement, sauf
+                signalement. Vérifie les liens du top 3 ci-dessus avant cette
+                échéance si quelque chose te semble anormal.
+              </p>
+              <DisputeForm challengeId={challenge.id} />
+            </>
+          )}
+        </section>
+      )}
     </main>
   );
 }

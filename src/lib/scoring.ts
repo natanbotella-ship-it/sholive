@@ -16,7 +16,13 @@ function rawMetricScore(s: SubmissionMetrics): number {
   );
 }
 
-// Score métriques (/50) normalisé par rapport au max du challenge (CLAUDE.md).
+// Score métriques (/50) normalisé par un rapport LOGARITHMIQUE au max du challenge
+// (pre-mortem 2026-07-06, déviation délibérée de la normalisation linéaire d'origine
+// de CLAUDE.md — mis à jour dans CLAUDE.md en conséquence). Avec un rapport linéaire,
+// une seule soumission aux stats déclarées gonflées écrasait le score de toutes les
+// autres à ~0 (raw/max), donnant à un unique fraudeur le contrôle total du classement
+// et de la shortlist soumise au vote. log1p est strictement croissant : l'ordre du
+// classement est inchangé, seul l'écart avec un outlier isolé est amorti.
 // Égalités départagées par le score le plus haut puis la soumission la plus ancienne
 // (même règle qu'au classement final du Bloc 14). Réutilisée telle quelle au Bloc 13
 // (calcul à la volée pour la shortlist) et au Bloc 14 (persistance de metric_score).
@@ -28,7 +34,8 @@ export function rankSubmissionsByMetricScore<T extends SubmissionMetrics>(
   return submissions
     .map((s) => ({
       ...s,
-      metricScore: maxRaw > 0 ? (rawMetricScore(s) / maxRaw) * 50 : 0,
+      metricScore:
+        maxRaw > 0 ? (Math.log1p(rawMetricScore(s)) / Math.log1p(maxRaw)) * 50 : 0,
     }))
     .sort((a, b) => {
       const diff = b.metricScore - a.metricScore;

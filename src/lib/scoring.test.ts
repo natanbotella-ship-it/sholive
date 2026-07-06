@@ -58,4 +58,32 @@ describe("rankSubmissionsByMetricScore", () => {
   it("gère une liste vide sans lever d'exception", () => {
     expect(rankSubmissionsByMetricScore([])).toEqual([]);
   });
+
+  it("amortit un outlier isolé au lieu d'écraser les autres à ~0 (anti-fraude, pre-mortem 2026-07-06)", () => {
+    const ranked = rankSubmissionsByMetricScore([
+      sub("honest-1", 100, "2026-01-01"),
+      sub("honest-2", 100, "2026-01-02"),
+      sub("fraud", 1_000_000, "2026-01-03"),
+    ]);
+    const fraud = ranked.find((s) => s.id === "fraud")!;
+    const honest = ranked.filter((s) => s.id !== "fraud");
+
+    expect(fraud.metricScore).toBe(50); // le max reste à 50
+    // Avec une normalisation linéaire, les honnêtes tomberaient à ~0.005/50.
+    // Le rapport logarithmique les maintient à un niveau significatif.
+    for (const h of honest) {
+      expect(h.metricScore).toBeGreaterThan(5);
+    }
+    // L'ordre relatif (fraud > honest, honest à égalité) reste inchangé.
+    expect(ranked[0].id).toBe("fraud");
+  });
+
+  it("conserve l'ordre du classement quel que soit l'écart (log1p est strictement croissant)", () => {
+    const ranked = rankSubmissionsByMetricScore([
+      sub("low", 10, "2026-01-01"),
+      sub("mid", 1000, "2026-01-02"),
+      sub("high", 100_000, "2026-01-03"),
+    ]);
+    expect(ranked.map((s) => s.id)).toEqual(["high", "mid", "low"]);
+  });
 });

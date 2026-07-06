@@ -63,7 +63,7 @@ Voir `schema.sql` à la racine — source de vérité. 8 tables : `profiles` (ex
 ## Logique métier (implémenter exactement ainsi)
 
 **Scoring soumission**
-- Score métriques (/50) = (vues × 0.4) + (saves × 0.4) + (likes × 0.1) + (partages × 0.1), normalisé sur 50 pts par rapport au max du challenge
+- Score métriques (/50) = (vues × 0.4) + (saves × 0.4) + (likes × 0.1) + (partages × 0.1) ; normalisé sur 50 pts par un rapport **logarithmique** au max du challenge (`log1p(brut) / log1p(max) × 50`), **pas linéaire** — déviation délibérée actée le 2026-07-06 (pre-mortem technique), implémentée dans `src/lib/scoring.ts` : avec un rapport linéaire, une seule soumission aux stats gonflées écrasait le score de toutes les autres à ~0, donnant à un unique fraudeur le contrôle total du classement et de la shortlist soumise au vote du pro. `log1p` est strictement croissant donc l'ordre du classement est inchangé, seul l'écart avec un outlier isolé est amorti. À combiner avec l'écran de vérification des liens vidéo du top 3 avant paiement (cf. section Paiements)
 - Score marchand (/50) = 50 pts au gagnant du vote pro sur le top 10 shortlist, 0 aux autres
 - Score total = score métriques + score marchand
 

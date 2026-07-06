@@ -130,7 +130,10 @@ grant update (username, avatar_url) on creator_profiles to authenticated;
 -- (< 10 soumissions à la deadline, remboursement intégral manuel déclenché par Natan).
 -- La transition active -> voting n'est pas cronée (pas de scheduler dans la stack) : elle est appliquée
 -- paresseusement par le premier bloc qui accède au challenge après submission_deadline (bloc 13 ou 14).
--- La transition voting -> results_finalized est déclenchée par le pro lui-même (bouton "Voir les résultats").
+-- La transition voting -> results_finalized est déclenchée soit par le pro ("Voir les résultats"), soit
+-- automatiquement par le cron de finalisation (pre-mortem 2026-07-06, src/app/api/cron/*) 48h après
+-- vote_deadline si le pro n'a pas cliqué — sinon un pro qui oublie/n'a plus d'intérêt à revenir laisse
+-- des gagnants jamais payés pour un prize pool déjà encaissé.
 create table challenges (
   id uuid primary key default gen_random_uuid(),
   merchant_id uuid not null references merchant_profiles(id) on delete cascade,
@@ -142,6 +145,12 @@ create table challenges (
   status text not null default 'draft'
     check (status in ('draft','awaiting_payment','active','voting','results_finalized','refunded')),
   stripe_checkout_session_id text,
+  -- Payment Intent du Checkout (capté au webhook checkout.session.completed) : sert de
+  -- source_transaction aux Transfers Stripe des gagnants (pre-mortem 2026-07-06), pour
+  -- que chaque Transfer soit adossé au paiement de CE challenge plutôt qu'à la balance
+  -- disponible globale de la plateforme (qui peut être insuffisante/retenue en réserve
+  -- si plusieurs challenges se chevauchent sur un compte Stripe jeune).
+  stripe_payment_intent_id text,
   payment_status text not null default 'unpaid' check (payment_status in ('unpaid','paid','refunded')),
   submission_deadline timestamptz not null,
   -- J+7 forcé : toujours = submission_deadline + 7 jours, calculée par la Server Action (bloc 06) et
@@ -149,6 +158,15 @@ create table challenges (
   -- timestamptz + interval n'est pas IMMUTABLE en Postgres (dépend du TimeZone de session), donc rejeté
   -- par "generated always as" (erreur 42P17).
   vote_deadline timestamptz not null,
+  -- Horodatage de la finalisation (pre-mortem 2026-07-06) : point de départ de la fenêtre
+  -- de litige de 72h avant qu'un Transfer réel ne soit tenté (cf. payouts.status
+  -- 'awaiting_review' plus bas) — laisse le temps à un signalement de fraude.
+  results_finalized_at timestamptz,
+  -- Signalement du pro ("un problème sur ce classement", pre-mortem 2026-07-06) : tant que
+  -- rempli, le cron de sweep des payouts n'envoie aucun Transfer pour ce challenge, même
+  -- après la fenêtre de 72h. Levée manuellement par Natan après vérification (pas d'UI de
+  -- levée au MVP, cohérent avec le remboursement < 10 soumissions déjà manuel).
+  results_disputed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -228,19 +246,27 @@ create policy "votes gérés par leur merchant" on votes for all
   using (merchant_id in (select id from merchant_profiles where user_id = auth.uid()));
 
 -- 7. Payouts
--- status : awaiting_onboarding (créateur n'a pas fini l'onboarding Connect) -> pending (Transfer Stripe
--- créé, en attente de confirmation) -> paid (webhook transfer.created reçu) | failed (webhook transfer.failed)
--- | refunded (challenge sous le seuil de 10 soumissions, aucun payout réel, remboursement manuel du pro).
--- Le passage awaiting_onboarding -> pending est redéclenché automatiquement par le webhook account.updated
--- (bloc 11) dès que stripe_onboarding_status du créateur passe à 'complete', même après results_finalized.
+-- status : awaiting_review (créé à la finalisation, DANS la fenêtre de litige de 72h — cf.
+-- challenges.results_finalized_at, aucun Transfer tenté) -> awaiting_onboarding (fenêtre passée,
+-- créateur n'a pas fini l'onboarding Connect) -> pending (Transfer Stripe créé, en attente de
+-- confirmation) -> paid (webhook transfer.created reçu) | failed (webhook transfer.failed, ou
+-- échec synchrone à la création) | refunded (challenge sous le seuil de 10 soumissions, aucun
+-- payout réel, remboursement manuel du pro).
+-- Le passage awaiting_review -> awaiting_onboarding|pending est fait par le cron de sweep
+-- (src/app/api/cron/*, pre-mortem 2026-07-06) une fois les 72h passées ET si
+-- challenges.results_disputed_at est NULL. Le passage awaiting_onboarding -> pending est
+-- redéclenché automatiquement par le webhook account.updated (bloc 11) dès que
+-- stripe_onboarding_status du créateur passe à 'complete', même après results_finalized
+-- (il n'a plus besoin de re-vérifier la fenêtre de litige : un payout n'atteint
+-- awaiting_onboarding qu'après qu'elle soit déjà passée).
 create table payouts (
   id uuid primary key default gen_random_uuid(),
   challenge_id uuid not null references challenges(id) on delete cascade,
   creator_id uuid not null references creator_profiles(id) on delete cascade,
   amount numeric(10,2) not null,
   rank integer not null,
-  status text not null default 'awaiting_onboarding'
-    check (status in ('awaiting_onboarding','pending','paid','failed','refunded')),
+  status text not null default 'awaiting_review'
+    check (status in ('awaiting_review','awaiting_onboarding','pending','paid','failed','refunded')),
   stripe_transfer_id text,
   created_at timestamptz not null default now(),
   -- Un seul payout par créateur et par challenge : verrou DB contre les créations

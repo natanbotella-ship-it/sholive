@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { stripe } from "@/lib/stripe";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { levelForXp } from "@/lib/xp";
 import { computePayoutShares } from "@/lib/payouts";
@@ -20,46 +19,32 @@ export type FinalizeResultsState = {
 // pas de scoring, pas de payout. Remplace toute logique de remboursement partiel (CLAUDE.md).
 const MIN_SUBMISSIONS = 10;
 
-export async function finalizeChallengeResultsAction(
-  _prevState: FinalizeResultsState,
-  formData: FormData,
+// Coeur du scoring/finalisation, sans vérification de session ni d'ownership : appelé
+// soit par finalizeChallengeResultsAction (après vérification que le merchant appelant
+// possède bien ce challenge), soit par le cron d'auto-finalisation (pre-mortem
+// 2026-07-06, src/app/api/cron/*) dont la seule autorisation est le secret CRON_SECRET —
+// il n'y a pas de "merchant appelant" à vérifier dans ce second cas, le cron traite tous
+// les challenges éligibles.
+export async function finalizeChallengeCore(
+  challengeId: string,
 ): Promise<FinalizeResultsState> {
-  const challengeId = formData.get("challengeId");
-  if (typeof challengeId !== "string" || !challengeId) {
-    return { error: "Challenge introuvable" };
-  }
+  // Ecritures cross-user privilegiees (scoring/XP/wins sur des soumissions et
+  // profils appartenant a des createurs) : client service role, jamais le client standard.
+  const admin = createAdminClient();
 
-  const supabase = createClient();
-  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
-  const auth = await getAuthenticatedUser(supabase);
-
-  if (!auth || auth.role !== "merchant") {
-    return { error: "Accès réservé aux comptes pro" };
-  }
-
-  const { data: merchantProfile } = await supabase
-    .from("merchant_profiles")
-    .select("id")
-    .eq("user_id", auth.user.id)
-    .maybeSingle();
-
-  if (!merchantProfile) {
-    return { error: "Profil pro introuvable" };
-  }
-
-  // RLS restreint deja cette lecture au merchant proprietaire.
-  const { data: challenge } = await supabase
+  const { data: challenge } = await admin
     .from("challenges")
-    .select("id, merchant_id, status, vote_deadline")
+    .select("id, status, vote_deadline")
     .eq("id", challengeId)
     .single();
 
-  if (!challenge || challenge.merchant_id !== merchantProfile.id) {
+  if (!challenge) {
     return { error: "Challenge introuvable" };
   }
 
-  // Idempotence : un second clic (ou un rechargement de page) ne doit jamais
-  // recalculer le scoring ni réattribuer l'XP une deuxième fois.
+  // Idempotence : un second clic (ou un rechargement de page, ou un passage du cron
+  // après que le pro ait déjà cliqué) ne doit jamais recalculer le scoring ni
+  // réattribuer l'XP une deuxième fois.
   if (challenge.status === "results_finalized") {
     return { finalized: true };
   }
@@ -78,10 +63,6 @@ export async function finalizeChallengeResultsAction(
   if (new Date(challenge.vote_deadline) > new Date()) {
     return { error: "La deadline de vote n'est pas encore passée" };
   }
-
-  // Ecritures cross-user privilegiees (scoring/XP/wins sur des soumissions et
-  // profils appartenant a des createurs) : client service role, jamais le client standard.
-  const admin = createAdminClient();
 
   const { count: submissionsCount } = await admin
     .from("submissions")
@@ -169,15 +150,19 @@ export async function finalizeChallengeResultsAction(
       .eq("id", submission.id);
   }
 
-  // Verrou contre les finalisations concurrentes (double clic dans deux onglets) :
-  // les écritures de scores/rangs ci-dessus sont déterministes (les ré-écrire ne
-  // change rien), mais l'attribution d'XP/wins est un incrément — elle ne doit
-  // être exécutée que par la requête qui remporte la transition de statut. La
-  // vérification d'idempotence en début d'action ne suffit pas : deux requêtes
-  // simultanées lisent toutes les deux "voting" avant que l'une n'écrive.
+  // Verrou contre les finalisations concurrentes (double clic dans deux onglets, ou
+  // cron + clic manuel simultanés) : les écritures de scores/rangs ci-dessus sont
+  // déterministes (les ré-écrire ne change rien), mais l'attribution d'XP/wins est un
+  // incrément — elle ne doit être exécutée que par la requête qui remporte la
+  // transition de statut. results_finalized_at marque le début de la fenêtre de
+  // litige de 72h avant tout Transfer réel (pre-mortem 2026-07-06, cf. payouts.status
+  // 'awaiting_review' et le cron de sweep).
   const { data: claimed } = await admin
     .from("challenges")
-    .update({ status: "results_finalized" })
+    .update({
+      status: "results_finalized",
+      results_finalized_at: new Date().toISOString(),
+    })
     .eq("id", challengeId)
     .in("status", ["active", "voting"])
     .select("id");
@@ -217,10 +202,57 @@ export async function finalizeChallengeResultsAction(
   return { finalized: true };
 }
 
+export async function finalizeChallengeResultsAction(
+  _prevState: FinalizeResultsState,
+  formData: FormData,
+): Promise<FinalizeResultsState> {
+  const challengeId = formData.get("challengeId");
+  if (typeof challengeId !== "string" || !challengeId) {
+    return { error: "Challenge introuvable" };
+  }
+
+  const supabase = createClient();
+  // Rôle vérifié contre profiles.role (user_metadata est forgeable, cf. lib/auth).
+  const auth = await getAuthenticatedUser(supabase);
+
+  if (!auth || auth.role !== "merchant") {
+    return { error: "Accès réservé aux comptes pro" };
+  }
+
+  const { data: merchantProfile } = await supabase
+    .from("merchant_profiles")
+    .select("id")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+
+  if (!merchantProfile) {
+    return { error: "Profil pro introuvable" };
+  }
+
+  // RLS restreint deja cette lecture au merchant proprietaire : c'est ici que
+  // l'ownership est vérifié, avant de déléguer au coeur partagé (service role, qui
+  // lui ne revérifie plus rien — cf. finalizeChallengeCore).
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("id, merchant_id")
+    .eq("id", challengeId)
+    .single();
+
+  if (!challenge || challenge.merchant_id !== merchantProfile.id) {
+    return { error: "Challenge introuvable" };
+  }
+
+  return finalizeChallengeCore(challengeId);
+}
+
 // Crée les payouts des 3 premiers (80% net du prize_pool, réparti selon prize_distribution,
 // arrondi à l'inférieur par rang, reliquat de centimes ajouté au 1er). Idempotent : si des
 // payouts existent déjà pour ce challenge, ne recrée rien (protège contre un double clic).
-async function createPayoutsForChallenge(challengeId: string): Promise<void> {
+// Statut initial 'awaiting_review' : AUCUN Transfer Stripe n'est tenté ici (pre-mortem
+// 2026-07-06) — le cron de sweep (src/app/api/cron/*) s'en charge une fois la fenêtre de
+// litige de 72h passée, sauf signalement du pro (challenges.results_disputed_at).
+// Exportée pour être appelée par le cron d'auto-finalisation en plus de viewResultsAction.
+export async function createPayoutsForChallenge(challengeId: string): Promise<void> {
   const admin = createAdminClient();
 
   const { data: existingPayouts } = await admin
@@ -268,82 +300,15 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
   }));
 
   for (const share of shares) {
-    const { data: creatorProfile } = await admin
-      .from("creator_profiles")
-      .select("stripe_account_id, stripe_onboarding_status")
-      .eq("id", share.creatorId)
-      .single();
-
-    const { data: payout } = await admin
-      .from("payouts")
-      .insert({
-        challenge_id: challengeId,
-        creator_id: share.creatorId,
-        amount: centsToEuros(share.cents),
-        rank: share.rank,
-        status: "awaiting_onboarding",
-      })
-      .select("id")
-      .single();
-
-    // payout null = insert refusé, notamment 23505 (contrainte unique
-    // challenge_id+creator_id) quand un appel concurrent a déjà créé ce payout :
-    // c'est lui qui s'occupe du Transfer, on passe au rang suivant.
-    if (
-      payout &&
-      creatorProfile?.stripe_onboarding_status === "complete" &&
-      creatorProfile.stripe_account_id
-    ) {
-      try {
-        const transfer = await stripe.transfers.create(
-          {
-            amount: share.cents,
-            currency: "eur",
-            destination: creatorProfile.stripe_account_id,
-            // Permet aux webhooks transfer.created/transfer.failed de retrouver
-            // le payout même si l'update ci-dessous n'a pas encore été écrit.
-            metadata: { payout_id: payout.id },
-          },
-          {
-            // Même clé que dans le webhook account.updated : deux déclenchements
-            // concurrents (double clic "Voir les résultats" dans deux onglets,
-            // webhook simultané) ne peuvent pas créer deux Transfers réels pour
-            // le même gagnant du même challenge.
-            idempotencyKey: `payout-transfer-${challengeId}-${share.creatorId}`,
-          },
-        );
-        // Conditionné sur awaiting_onboarding : si le webhook transfer.created est
-        // arrivé entre-temps et a déjà marqué "paid", on ne rétrograde pas en "pending".
-        await admin
-          .from("payouts")
-          .update({ status: "pending", stripe_transfer_id: transfer.id })
-          .eq("id", payout.id)
-          .eq("status", "awaiting_onboarding");
-      } catch (error) {
-        // L'appel de creation du Transfer a echoue de facon synchrone (pas un
-        // transfer.failed webhook apres coup) : le compte est deja "complete", donc
-        // rien ne redeclenchera automatiquement une nouvelle tentative (le webhook
-        // account.updated du Bloc 11 ne reagit qu'a un changement de statut d'onboarding).
-        // On marque le payout failed pour que ce soit visible et traite manuellement,
-        // plutot que de le laisser a tort en awaiting_onboarding (qui ne serait alors
-        // plus jamais repris). Conditionne sur awaiting_onboarding : si un appel
-        // concurrent a deja cree le Transfer (conflit de cle d'idempotence Stripe
-        // levant une exception ici), on n'ecrase pas son "pending"/"paid".
-        const { data: markedFailed } = await admin
-          .from("payouts")
-          .update({ status: "failed" })
-          .eq("id", payout.id)
-          .eq("status", "awaiting_onboarding")
-          .select("id");
-
-        if (markedFailed && markedFailed.length > 0) {
-          await notifyAdmin(
-            "Transfer Stripe échoué (payout)",
-            `Le Transfer pour le payout ${payout.id} (challenge ${challengeId}, créateur ${share.creatorId}, ${centsToEuros(share.cents)}€) a échoué : ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-    }
+    // Insert ignoré silencieusement en cas d'échec (notamment 23505, contrainte unique
+    // challenge_id+creator_id, si un appel concurrent a déjà créé ce payout).
+    await admin.from("payouts").insert({
+      challenge_id: challengeId,
+      creator_id: share.creatorId,
+      amount: centsToEuros(share.cents),
+      rank: share.rank,
+      status: "awaiting_review",
+    });
   }
 }
 

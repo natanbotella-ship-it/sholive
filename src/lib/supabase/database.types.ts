@@ -24,8 +24,11 @@ export type Database = {
           payment_status: string
           prize_distribution: Json
           prize_pool: number
+          results_disputed_at: string | null
+          results_finalized_at: string | null
           status: string
           stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
           submission_deadline: string
           title: string
           vote_deadline: string
@@ -39,8 +42,11 @@ export type Database = {
           payment_status?: string
           prize_distribution?: Json
           prize_pool: number
+          results_disputed_at?: string | null
+          results_finalized_at?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           submission_deadline: string
           title: string
           vote_deadline: string
@@ -54,8 +60,11 @@ export type Database = {
           payment_status?: string
           prize_distribution?: Json
           prize_pool?: number
+          results_disputed_at?: string | null
+          results_finalized_at?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
           submission_deadline?: string
           title?: string
           vote_deadline?: string

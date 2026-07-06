@@ -33,9 +33,19 @@ export async function POST(request: Request) {
       // Stripe livre les événements au moins une fois (doublons/rejeux possibles) :
       // sans le filtre sur le statut, un rejeu tardif repasserait en "active" un
       // challenge déjà avancé (voting/results_finalized/refunded).
+      // stripe_payment_intent_id (pre-mortem 2026-07-06) : capté ici pour servir de
+      // source_transaction aux Transfers des gagnants (cf. cron de sweep), afin qu'ils
+      // soient adossés au paiement de CE challenge plutôt qu'à la balance disponible
+      // globale de la plateforme. mode "payment" -> le Payment Intent existe déjà à
+      // la complétion du Checkout, pas besoin d'expand.
       await supabase
         .from("challenges")
-        .update({ payment_status: "paid", status: "active" })
+        .update({
+          payment_status: "paid",
+          status: "active",
+          stripe_payment_intent_id:
+            typeof session.payment_intent === "string" ? session.payment_intent : null,
+        })
         .eq("id", challengeId)
         .eq("stripe_checkout_session_id", session.id)
         .eq("status", "awaiting_payment");

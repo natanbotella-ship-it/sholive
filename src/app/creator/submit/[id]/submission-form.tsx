@@ -22,7 +22,12 @@ export function SubmissionForm({ challengeId }: { challengeId: string }) {
   const [state, formAction] = useFormState(submitAction, initialState);
 
   if (state.success) {
-    return <p className="text-sm">Soumission envoyée ! +10 XP.</p>;
+    return (
+      <p className="text-sm">
+        Soumission envoyée ! Tes +10 XP de participation seront crédités
+        lorsque le challenge sera finalisé.
+      </p>
+    );
   }
 
   return (

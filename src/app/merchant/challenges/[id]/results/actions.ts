@@ -177,11 +177,14 @@ export async function finalizeChallengeResultsAction(
     return { finalized: true };
   }
 
-  // XP top 3 (+50) et victoire (+100), cumulables : le gagnant reçoit +150 au total.
-  const top3 = ranked.slice(0, 3);
-  for (let index = 0; index < top3.length; index++) {
-    const submission = top3[index];
-    const bonusXp = index === 0 ? 150 : 50;
+  // XP : +10 participation (tous les participants, désormais crédité ici plutôt
+  // qu'à la soumission — anti-farming, pre-mortem 2026-07-06, cf. submitAction),
+  // +50 top 3, +100 victoire, cumulables (le gagnant reçoit 10+50+100 = 160 au
+  // total ; CLAUDE.md compte le +150 top3+victoire séparément du +10 participation).
+  for (let index = 0; index < ranked.length; index++) {
+    const submission = ranked[index];
+    const topBonus = index === 0 ? 150 : index < 3 ? 50 : 0;
+    const bonusXp = 10 + topBonus;
     const { data: creatorProfile } = await admin
       .from("creator_profiles")
       .select("xp, wins")

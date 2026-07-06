@@ -1,9 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
-import { levelForXp } from "@/lib/xp";
 import { submissionSchema } from "./schema";
 
 export type SubmissionState = {
@@ -65,7 +63,7 @@ export async function submitAction(
 
   const { data: creatorProfile } = await supabase
     .from("creator_profiles")
-    .select("id, xp")
+    .select("id")
     .eq("user_id", auth.user.id)
     .maybeSingle();
 
@@ -95,14 +93,11 @@ export async function submitAction(
     return { error: "Impossible d'enregistrer la soumission" };
   }
 
-  // xp/level sont des colonnes privilégiées (plus de grant update client dessus —
-  // un créateur ne doit pas pouvoir s'attribuer de l'XP lui-même). Service role,
-  // après le rôle vérifié en début d'action et l'insert de soumission réussi.
-  const newXp = creatorProfile.xp + 10;
-  await createAdminClient()
-    .from("creator_profiles")
-    .update({ xp: newXp, level: levelForXp(newXp) })
-    .eq("id", creatorProfile.id);
-
+  // Les +10 XP de participation (CLAUDE.md) sont désormais crédités à la
+  // finalisation du challenge (finalizeChallengeResultsAction), pas ici — sinon
+  // n'importe quel compte pouvait farmer de l'XP en soumettant des liens bidon
+  // sur un maximum de challenges sans jamais attendre un vrai résultat, y compris
+  // sur des challenges qui finissent remboursés (< 10 soumissions). Anti-farming
+  // acté au pre-mortem du 2026-07-06.
   return { success: true };
 }

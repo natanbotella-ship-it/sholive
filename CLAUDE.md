@@ -69,8 +69,9 @@ Voir `schema.sql` à la racine — source de vérité. 8 tables : `profiles` (ex
 
 **Niveaux créateur (XP)**
 - Débutant 0-99 · Montant 100-299 · Confirmé 300-699 · Expert 700-1499 · Élite 1500+
-- +10 XP soumission, +50 XP top 3, +100 XP victoire — **cumulables** : le gagnant est aussi dans le top 3, donc il reçoit +150 XP au total (+50 puis +100)
-- `level` doit être recalculé à partir de `xp` à chaque fois que l'XP change (soumission, top 3, victoire) — jamais figé après le calcul initial
+- +10 XP soumission, +50 XP top 3, +100 XP victoire — **cumulables** : le gagnant est aussi dans le top 3, donc il reçoit +150 XP au total (+50 puis +100), plus le +10 participation = 160 au total sur le cycle de vie du challenge
+- **+10 XP soumission crédité à la finalisation du challenge, pas à l'insert de la soumission** (déviation actée le 2026-07-06, pre-mortem technique) : sinon n'importe quel compte pouvait farmer de l'XP en soumettant des liens sur un maximum de challenges sans jamais viser un vrai résultat, y compris sur des challenges finissant `refunded` (< 10 soumissions, où aucune XP ne doit être gagnée). Tous les participants d'un challenge finalisé reçoivent leur +10 en même temps que le scoring, dans `finalizeChallengeResultsAction`
+- `level` doit être recalculé à partir de `xp` à chaque fois que l'XP change (finalisation du challenge) — jamais figé après le calcul initial
 
 **Badges** : Premier challenge, Première victoire, 3 victoires, 10 soumissions
 

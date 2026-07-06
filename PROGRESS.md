@@ -9,11 +9,11 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 04 — Onboarding profil marchand
 - [x] Bloc 05 — Onboarding profil créateur
 - [x] Bloc 06 — Création de challenge (sans paiement)
-- [~] Bloc 07 — Stripe Checkout : paiement du prize pool (code complet, Checkout Session non testée en vrai — clé Stripe manquante)
+- [x] Bloc 07 — Stripe Checkout : paiement du prize pool (Checkout Session réelle testée le 2026-07-06, carte test, webhook `checkout.session.completed` confirmé)
 - [x] Bloc 08 — Liste publique des challenges
 - [x] Bloc 09 — Page détail challenge
 - [x] Bloc 10 — Soumission créateur
-- [~] Bloc 11 — Stripe Connect : onboarding créateur (code complet, création de compte Connect réelle non testée — clé Stripe manquante)
+- [x] Bloc 11 — Stripe Connect : onboarding créateur (onboarding Express réel testé le 2026-07-06, `payouts_enabled`/webhook `account.updated` confirmés — cf. notes ci-dessous pour les 2 blocages Stripe traversés)
 - [x] Bloc 12 — Dashboard pro : suivi challenge
 - [x] Bloc 13 — Vote pro sur shortlist
 - [x] Bloc 14 — Scoring et calcul final
@@ -21,7 +21,7 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
 - [x] Bloc 16 — Profil créateur public
 - [x] Bloc 17 — Dashboard créateur
 - [x] Bloc 18 — Landing page
-- [~] Bloc 19 — Tests end-to-end (guide préparé dans `E2E_TEST_GUIDE.md`, exécution manuelle par Natan à venir — nécessite une vraie clé Stripe test)
+- [x] Bloc 19 — Tests end-to-end (parcours complet A→D exécuté en conditions réelles le 2026-07-06 : paiement Checkout, onboarding Connect, 10 soumissions, vote, finalisation, scoring/XP/wins, payouts créés — cf. notes détaillées ci-dessous. Reste : test du Transfer réel via le cron après la fenêtre de 72h, cf. suite)
 
 ## Notes libres (bugs connus, décisions prises en cours de route)
 
@@ -218,3 +218,10 @@ Claude Code : mets à jour ce fichier après chaque bloc terminé (coche + une l
   - **Onboarding Connect réel validé** (`payouts_enabled`/`details_submitted` = true confirmés via l'API Stripe) mais `stripe_onboarding_status` restait `pending` en base : le webhook `account.updated` n'arrivait jamais. Cause trouvée en interrogeant l'API Events avec le header `Stripe-Account` : `account.updated` sur un **compte connecté** est un event Connect, livré uniquement via `stripe listen --forward-connect-to` (absent du `stripe listen` lancé initialement, qui n'avait que `--forward-to`) — jamais rencontré aux Blocs 07/11/15 car jamais testé avec une vraie clé avant aujourd'hui. Tunnel relancé avec les deux flags, event manqué renvoyé via `stripe events resend`, statut passé à `complete` en base
   - **Point d'attention critique pour la mise en prod** : le futur endpoint webhook Stripe pointant vers l'URL Vercel devra explicitement être configuré pour recevoir les événements des comptes connectés (case "Listen to events on connected accounts" à la création de l'endpoint dans le dashboard Stripe) — sinon exactement le même symptôme se reproduirait en prod : plus aucun payout ne sortirait jamais de `awaiting_onboarding`, silencieusement, sans erreur visible
   - Suite : étape B à reprendre (soumission + onboarding Connect réel du compte créateur héros), puis étapes C (remplissage) et D (vote/scoring/payout)
+
+- 2026-07-06 : Étapes C et D du Bloc 19 terminées — parcours E2E complet validé de bout en bout.
+  - **Étape C** : 9 comptes créateurs de remplissage créés (API admin Supabase, même méthode qu'aux Blocs 02/13/14) avec des stats décroissantes sous celles du compte héros (500k → 25k vues), pour atteindre exactement 10 soumissions sur le challenge de test. `submission_deadline`/`vote_deadline` reculées directement en base (ajustement de données de test, pas de code) pour ne pas attendre les délais réels
+  - **Étape D** : vote du merchant pour le héros (`merchant_score=50`), puis "Voir les résultats" — classement calculé correctement (héros #1, 100/100, log1p vérifié sur les scores des fillers), 3 payouts créés (80€/48€/32€ = 50/30/20 des 160€ nets, statut `awaiting_review`), XP/niveau/wins corrects (160 XP, "Montant", 1 victoire — formule exacte de CLAUDE.md confirmée)
+  - **Bug trouvé et corrigé** : la page résultats restait bloquée sur "tu peux finaliser" après le clic, même après un rechargement — `viewResultsAction`/`reportResultsDisputeAction` mutaient bien la base (confirmé) mais n'appelaient jamais `revalidatePath`, donc Next.js resservait le rendu d'avant l'action. Jamais vu par les tests par simulation des Blocs 13/14/15 (rejouent les appels Supabase, pas le rendu réel) — seul un vrai navigateur pouvait le révéler. La page de vote n'a pas ce bug (`castVoteAction` fait déjà un `redirect()`)
+  - **Retour utilisateur** : le score seul ("47.33/50") n'était pas interprétable sans les stats brutes sous les yeux → ajoutées à côté du score sur la page résultats. Nouvelle page publique `/comment-ca-marche` (liée depuis le footer + la page résultats) expliquant le fonctionnement pro/créateur en langage simple, sans exposer la formule exacte (log1p, pondérations) pour ne pas faciliter le contournement du garde-fou anti-fraude
+  - **Reste non testé** : le vrai `stripe.transfers.create` du cron (`sholive-scheduler`) après la fenêtre de 72h — les payouts sont actuellement `awaiting_review`, jamais encore passés `pending`/`paid` avec un vrai Transfer. Peut se tester maintenant en reculant `results_finalized_at` de plus de 72h en base et en appelant le cron manuellement avec `CRON_SECRET`, sans attendre le vrai délai

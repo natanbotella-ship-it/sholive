@@ -21,11 +21,22 @@ export default async function CreatorOnboardingPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary-ink">
-        Complète ton profil créateur
-      </h1>
-      <CreatorOnboardingForm />
+    <main className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="card flex flex-col gap-6 p-6 sm:p-8">
+          <div className="flex flex-col gap-1">
+            <span className="badge badge-primary mb-2">Dernière étape</span>
+            <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              Choisis ton nom de créateur
+            </h1>
+            <p className="text-sm text-muted">
+              C&apos;est le nom que les commerces et les autres créateurs
+              verront sur les classements.
+            </p>
+          </div>
+          <CreatorOnboardingForm />
+        </div>
+      </div>
     </main>
   );
 }

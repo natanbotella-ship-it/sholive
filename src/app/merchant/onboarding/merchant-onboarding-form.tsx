@@ -11,12 +11,8 @@ const initialState: MerchantOnboardingState = {};
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="btn-primary"
-    >
-      {pending ? "Enregistrement..." : "Valider"}
+    <button type="submit" disabled={pending} className="btn-primary w-full">
+      {pending ? "Enregistrement..." : "Créer mon espace pro"}
     </button>
   );
 }
@@ -28,8 +24,8 @@ export function MerchantOnboardingForm() {
   );
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
-      <div className="flex flex-col gap-1">
+    <form action={formAction} className="flex w-full flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="businessName" className="text-sm font-medium">
           Nom du commerce
         </label>
@@ -38,11 +34,12 @@ export function MerchantOnboardingForm() {
           name="businessName"
           type="text"
           required
+          placeholder="ex : Le Bouchon des Canuts"
           className="input"
         />
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="city" className="text-sm font-medium">
           Ville
         </label>
@@ -54,9 +51,12 @@ export function MerchantOnboardingForm() {
           defaultValue="Lyon"
           className="input"
         />
+        <p className="text-xs text-muted">
+          Sholive est lancé en exclusivité à Lyon pour le moment.
+        </p>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="phone" className="text-sm font-medium">
           Téléphone
         </label>
@@ -65,8 +65,13 @@ export function MerchantOnboardingForm() {
           name="phone"
           type="tel"
           required
+          placeholder="ex : 06 12 34 56 78"
           className="input"
         />
+        <p className="text-xs text-muted">
+          Jamais affiché publiquement — uniquement pour que l&apos;équipe
+          Sholive puisse te joindre.
+        </p>
       </div>
 
       {state.error && <p className="alert-error">{state.error}</p>}

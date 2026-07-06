@@ -21,11 +21,22 @@ export default async function MerchantOnboardingPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary-ink">
-        Complète ton profil pro
-      </h1>
-      <MerchantOnboardingForm />
+    <main className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="card flex flex-col gap-6 p-6 sm:p-8">
+          <div className="flex flex-col gap-1">
+            <span className="badge mb-2">Dernière étape</span>
+            <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              Présente ton commerce
+            </h1>
+            <p className="text-sm text-muted">
+              Ces informations apparaîtront sur tes challenges pour que les
+              créateurs sachent chez qui ils viennent filmer.
+            </p>
+          </div>
+          <MerchantOnboardingForm />
+        </div>
+      </div>
     </main>
   );
 }

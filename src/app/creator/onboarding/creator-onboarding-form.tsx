@@ -40,21 +40,8 @@ export function CreatorOnboardingForm() {
           required
           minLength={3}
           maxLength={20}
-          pattern="[a-z0-9_]+"
+          pattern="[a-zA-Z0-9_]+"
           className="input"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="avatar" className="text-sm font-medium">
-          Avatar (optionnel)
-        </label>
-        <input
-          id="avatar"
-          name="avatar"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          className="text-sm"
         />
       </div>
 

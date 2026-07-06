@@ -26,5 +26,10 @@ export const creatorProfileSchema = z.object({
       (f) => f.size === 0 || ALLOWED_AVATAR_TYPES.includes(f.type),
       "Format d'image non supporté (png, jpeg, webp ou gif)",
     )
+    // Champ retiré du formulaire d'inscription (2026-07-06, décision Natan) : le
+    // input file n'existe plus dans le DOM, donc formData.get("avatar") renvoie
+    // null (pas undefined) — .nullable() en plus de .optional() pour accepter les
+    // deux. L'upload reste possible plus tard depuis /creator/profile.
+    .nullable()
     .optional(),
 });

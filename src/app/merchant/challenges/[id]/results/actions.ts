@@ -6,6 +6,8 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { levelForXp } from "@/lib/xp";
+import { computePayoutShares } from "@/lib/payouts";
+import { centsToEuros } from "@/lib/money";
 
 export type FinalizeResultsState = {
   error?: string;
@@ -240,21 +242,17 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
   }
 
   const distribution = challenge.prize_distribution as Record<string, number>;
-  const prizePoolCents = Math.round(Number(challenge.prize_pool) * 100);
-  const netCents = Math.floor(prizePoolCents * 0.8);
-
-  const shares = topSubmissions.map((s) => ({
-    creatorId: s.creator_id,
-    rank: s.rank as number,
-    cents: Math.floor((netCents * (distribution[String(s.rank)] ?? 0)) / 100),
+  const creatorIdByRank = new Map(
+    topSubmissions.map((s) => [s.rank as number, s.creator_id]),
+  );
+  const shares = computePayoutShares(
+    Number(challenge.prize_pool),
+    distribution,
+    topSubmissions.map((s) => s.rank as number),
+  ).map((share) => ({
+    ...share,
+    creatorId: creatorIdByRank.get(share.rank)!,
   }));
-
-  const distributedCents = shares.reduce((sum, s) => sum + s.cents, 0);
-  const remainderCents = netCents - distributedCents;
-  const firstRankShare = shares.find((s) => s.rank === 1);
-  if (firstRankShare) {
-    firstRankShare.cents += remainderCents;
-  }
 
   for (const share of shares) {
     const { data: creatorProfile } = await admin
@@ -268,7 +266,7 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
       .insert({
         challenge_id: challengeId,
         creator_id: share.creatorId,
-        amount: share.cents / 100,
+        amount: centsToEuros(share.cents),
         rank: share.rank,
         status: "awaiting_onboarding",
       })

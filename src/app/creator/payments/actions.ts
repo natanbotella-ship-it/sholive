@@ -45,7 +45,8 @@ export async function createConnectAccountAction(
           transfers: { requested: true },
         },
       });
-    } catch {
+    } catch (err) {
+      console.error("Erreur création compte Stripe Connect :", err);
       return { error: "Impossible de créer le compte de paiement Stripe" };
     }
 
@@ -78,7 +79,8 @@ export async function createConnectAccountAction(
       return_url: `${siteUrl}/creator/payments`,
       type: "account_onboarding",
     });
-  } catch {
+  } catch (err) {
+    console.error("Erreur création account link Stripe Connect :", err);
     return { error: "Impossible de générer le lien d'activation Stripe" };
   }
 

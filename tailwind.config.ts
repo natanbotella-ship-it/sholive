@@ -1,9 +1,9 @@
 import type { Config } from "tailwindcss";
 
-// Palette "terracotta & sapin" (revue design 2026-07-05) : tokens exposés en
+// Palette "Nuit des Lumières" (refonte design 2026-07-07) : tokens exposés en
 // canaux RGB (var CSS) pour conserver les modificateurs d'opacité Tailwind.
 // Les valeurs vivent dans globals.css (mode clair + sombre), tous les couples
-// texte/fond sont validés WCAG AA (script de vérification en revue).
+// texte/fond sont validés WCAG AA (script contrast-check de la refonte).
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -27,9 +27,21 @@ const config: Config = {
         },
         accent: {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
           ink: "rgb(var(--accent-ink) / <alpha-value>)",
           soft: "rgb(var(--accent-soft) / <alpha-value>)",
           contrast: "rgb(var(--accent-contrast) / <alpha-value>)",
+        },
+        secondary: {
+          ink: "rgb(var(--secondary-ink) / <alpha-value>)",
+          soft: "rgb(var(--secondary-soft) / <alpha-value>)",
+        },
+        night: {
+          DEFAULT: "rgb(var(--night) / <alpha-value>)",
+          surface: "rgb(var(--night-surface) / <alpha-value>)",
+          fg: "rgb(var(--night-fg) / <alpha-value>)",
+          muted: "rgb(var(--night-muted) / <alpha-value>)",
+          border: "rgb(var(--night-border) / <alpha-value>)",
         },
       },
       borderColor: {
@@ -38,6 +50,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)"],
+        display: ["var(--font-archivo)", "var(--font-inter)", "sans-serif"],
       },
     },
   },

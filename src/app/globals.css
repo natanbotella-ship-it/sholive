@@ -2,49 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Identité Sholive — "terracotta & sapin" (revue design 2026-07-05).
-   Crème pierre dorée en fond, terracotta des toits lyonnais en couleur d'action,
-   vert sapin en accent. Tokens en canaux RGB (cf. tailwind.config.ts), couples
-   texte/fond validés WCAG AA en clair comme en sombre. */
+/* Identité Sholive — "Nuit des Lumières" (refonte design 2026-07-07, remplace
+   "terracotta & sapin" du 2026-07-05). Lyon la nuit, caméra au poing : encre
+   bleu nuit pour les sections immersives (héros, nav, footer), rouge lyonnais
+   en couleur d'action, doré Fête des Lumières réservé à l'argent et aux
+   récompenses (cagnottes, XP, badges), bleu profond pour les liens et les
+   éléments de confiance côté pro. Tokens en canaux RGB (cf. tailwind.config.ts),
+   48 couples texte/fond validés WCAG AA clair + sombre (script contrast-check,
+   refonte 2026-07-07). */
 :root {
-  --background: 250 245 236; /* crème #FAF5EC */
-  --surface: 255 252 245; /* cartes #FFFCF5 */
-  --foreground: 38 32 25; /* encre chaude #262019 */
-  --muted: 108 93 76; /* texte secondaire #6C5D4C */
-  --border: 228 216 194; /* beige #E4D8C2 */
+  --background: 251 248 243; /* blanc cassé chaud #FBF8F3 */
+  --surface: 255 255 255; /* cartes #FFFFFF */
+  --foreground: 20 26 46; /* encre nuit #141A2E */
+  --muted: 92 98 114; /* texte secondaire #5C6272 */
+  --border: 229 223 210; /* beige pierre #E5DFD2 */
   --danger: 179 38 30; /* #B3261E */
 
-  --primary: 166 58 28; /* terracotta #A63A1C */
-  --primary-hover: 140 47 21; /* #8C2F15 */
-  --primary-ink: 156 53 23; /* terracotta texte #9C3517 */
-  --primary-soft: 246 227 214; /* fond teinté #F6E3D6 */
+  --primary: 210 43 36; /* rouge lyonnais #D22B24 */
+  --primary-hover: 176 34 25; /* #B02219 */
+  --primary-ink: 176 34 25; /* rouge texte #B02219 */
+  --primary-soft: 251 228 225; /* fond teinté #FBE4E1 */
   --primary-contrast: 255 255 255;
 
-  --accent: 32 92 67; /* sapin #205C43 */
-  --accent-ink: 29 81 56; /* sapin texte #1D5138 */
-  --accent-soft: 222 235 223; /* fond teinté #DEEBDF */
-  --accent-contrast: 255 255 255;
+  --accent: 232 178 58; /* doré Lumières #E8B23A — argent & récompenses */
+  --accent-hover: 217 160 38; /* #D9A026 */
+  --accent-ink: 138 100 0; /* doré texte #8A6400 */
+  --accent-soft: 250 238 206; /* fond teinté #FAEECE */
+  --accent-contrast: 20 26 46; /* encre nuit sur doré */
+
+  --secondary-ink: 36 53 107; /* bleu profond #24356B — liens, éléments pro */
+  --secondary-soft: 228 233 246; /* fond teinté #E4E9F6 */
+
+  --night: 19 26 46; /* fond section nuit #131A2E */
+  --night-surface: 28 36 64; /* cartes sur nuit #1C2440 */
+  --night-fg: 245 241 232; /* texte sur nuit #F5F1E8 */
+  --night-muted: 169 176 199; /* texte secondaire sur nuit #A9B0C7 */
+  --night-border: 45 54 84; /* #2D3654 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 23 19 16; /* brun nuit #171310 */
-    --surface: 32 26 21; /* #201A15 */
-    --foreground: 239 230 216; /* #EFE6D8 */
-    --muted: 176 160 141; /* #B0A08D */
-    --border: 59 50 39; /* #3B3227 */
+    --background: 14 20 36; /* nuit profonde #0E1424 */
+    --surface: 23 31 56; /* #171F38 */
+    --foreground: 239 235 225; /* #EFEBE1 */
+    --muted: 166 173 198; /* #A6ADC6 */
+    --border: 44 52 83; /* #2C3453 */
     --danger: 241 148 140; /* #F1948C */
 
-    --primary: 168 62 30; /* #A83E1E */
-    --primary-hover: 193 76 38; /* #C14C26 */
-    --primary-ink: 240 144 107; /* #F0906B */
-    --primary-soft: 51 34 27; /* #33221B */
+    --primary: 210 43 36; /* #D22B24 */
+    --primary-hover: 176 34 25; /* #B02219 */
+    --primary-ink: 255 139 126; /* #FF8B7E */
+    --primary-soft: 59 26 31; /* #3B1A1F */
     --primary-contrast: 255 255 255;
 
-    --accent: 38 100 74; /* #26644A */
-    --accent-ink: 140 197 166; /* #8CC5A6 */
-    --accent-soft: 28 43 35; /* #1C2B23 */
-    --accent-contrast: 255 255 255;
+    --accent: 232 178 58; /* #E8B23A */
+    --accent-hover: 217 160 38; /* #D9A026 */
+    --accent-ink: 239 193 99; /* #EFC163 */
+    --accent-soft: 51 41 9; /* #332909 */
+    --accent-contrast: 20 26 46;
+
+    --secondary-ink: 169 188 240; /* #A9BCF0 */
+    --secondary-soft: 29 39 71; /* #1D2747 */
+
+    --night: 11 16 29; /* #0B101D */
+    --night-surface: 23 31 56; /* #171F38 */
+    --night-fg: 245 241 232;
+    --night-muted: 169 176 199;
+    --night-border: 44 52 83;
   }
 }
 
@@ -54,17 +78,34 @@ body {
 }
 
 ::selection {
-  background: rgb(var(--primary-soft));
+  background: rgb(var(--accent-soft));
   color: rgb(var(--foreground));
 }
 
-@layer components {
-  /* Boutons : mêmes hauteurs/rayons partout, focus visible, état disabled. */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-contrast shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-50;
+@layer base {
+  /* Titres en Archivo (display), corps en Inter — cf. layout.tsx. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
   }
+}
+
+@layer components {
+  /* Boutons : mêmes hauteurs/rayons partout, focus visible, état disabled,
+     léger enfoncement au clic (retour tactile mobile). */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-contrast shadow-sm transition hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  /* Bouton doré : réservé aux actions liées à l'argent/récompense
+     (payer la cagnotte, activer les paiements). */
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-contrast shadow-sm transition hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+  }
+  /* Action secondaire neutre : une seule action rouge par écran, le reste en encre. */
   .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-primary-ink/50 px-4 py-2 text-sm font-semibold text-primary-ink transition-colors hover:bg-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-foreground/20 px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
   }
   .btn-sm {
     @apply px-3 py-1.5;
@@ -72,31 +113,50 @@ body {
 
   /* Surfaces */
   .card {
-    @apply rounded-xl border bg-surface p-4 shadow-sm;
+    @apply rounded-2xl border bg-surface p-4 shadow-sm;
   }
   .card-hover {
-    @apply transition-colors hover:border-primary;
+    @apply transition-all hover:-translate-y-0.5 hover:shadow-md;
+  }
+  /* Carte sur fond nuit (héros, sections immersives). */
+  .card-night {
+    @apply rounded-2xl border border-night-border bg-night-surface p-4;
+  }
+  .section-night {
+    @apply bg-night text-night-fg;
   }
 
-  /* Formulaires */
+  /* Formulaires — text-base sur mobile pour éviter le zoom auto iOS (<16px). */
   .input {
-    @apply rounded-lg border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30;
+    @apply rounded-xl border bg-surface px-3.5 py-2.5 text-base text-foreground placeholder:text-muted transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 sm:text-sm;
   }
 
-  /* Badges (statuts, tags) */
+  /* Badges (statuts, tags) : neutre bleu par défaut, rouge pour l'action,
+     doré uniquement pour l'argent/récompenses. */
   .badge {
-    @apply inline-flex w-fit items-center rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-ink;
+    @apply inline-flex w-fit items-center rounded-full bg-secondary-soft px-3 py-1 text-xs font-semibold text-secondary-ink;
   }
   .badge-primary {
     @apply bg-primary-soft text-primary-ink;
   }
+  .badge-gold {
+    @apply bg-accent-soft text-accent-ink;
+  }
+
+  /* Chips de filtre (listes scannables façon livraison) : état actif inversé. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border bg-surface px-3.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30;
+  }
+  .chip-active {
+    @apply border-transparent bg-foreground text-background hover:border-transparent;
+  }
 
   /* Liens et erreurs */
   .link {
-    @apply font-medium text-primary-ink underline underline-offset-2 transition-opacity hover:opacity-80;
+    @apply font-medium text-secondary-ink underline underline-offset-2 transition-opacity hover:opacity-80;
   }
   .alert-error {
-    @apply rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger;
+    @apply rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger;
   }
 }
 

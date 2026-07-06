@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter } from "next/font/google";
+import { Archivo, Inter } from "next/font/google";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -9,6 +9,13 @@ import { signOutAction } from "./actions";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+});
+
+// Display "affiche" pour les titres (identité Nuit des Lumières) — police
+// variable, servie par next/font, aucune dépendance npm ajoutée.
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
 });
 
 export const metadata: Metadata = {
@@ -31,7 +38,7 @@ export default async function RootLayout({
 
   return (
     <html lang="fr">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${archivo.variable} font-sans antialiased`}>
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur">
             <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 sm:px-6">

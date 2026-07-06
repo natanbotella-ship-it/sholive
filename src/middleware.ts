@@ -37,5 +37,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // "/api" exclu (pre-mortem 2026-07-06) : le webhook Stripe et les routes cron
+  // n'ont besoin d'aucune session Supabase, les faire passer par updateSession()
+  // ajoutait une dépendance réseau inutile (et un point de panne) sur le chemin
+  // critique argent — un appel Supabase Auth en échec n'empêchait pas la requête
+  // de continuer ici, mais autant ne pas la faire du tout.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

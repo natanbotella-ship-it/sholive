@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdmin } from "@/lib/notify-admin";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -80,34 +81,49 @@ export async function POST(request: Request) {
           .eq("status", "awaiting_onboarding");
 
         for (const payout of pendingPayouts ?? []) {
-          const transfer = await stripe.transfers.create(
-            {
-              amount: Math.round(Number(payout.amount) * 100),
-              currency: "eur",
-              destination: account.id,
-              // Permet aux webhooks transfer.created/transfer.failed de retrouver
-              // le payout même si l'update ci-dessous n'a pas encore été écrit.
-              metadata: { payout_id: payout.id },
-            },
-            {
-              // Stripe livre les webhooks au moins une fois, parfois en parallèle :
-              // deux account.updated concurrents lisent les mêmes payouts
-              // awaiting_onboarding avant que l'un des deux ait écrit "pending".
-              // La clé d'idempotence (par challenge + créateur, pas par row payout)
-              // garantit qu'un seul Transfer réel est créé, Stripe renvoyant le
-              // même objet au second appel.
-              idempotencyKey: `payout-transfer-${payout.challenge_id}-${payout.creator_id}`,
-            },
-          );
+          try {
+            const transfer = await stripe.transfers.create(
+              {
+                amount: Math.round(Number(payout.amount) * 100),
+                currency: "eur",
+                destination: account.id,
+                // Permet aux webhooks transfer.created/transfer.failed de retrouver
+                // le payout même si l'update ci-dessous n'a pas encore été écrit.
+                metadata: { payout_id: payout.id },
+              },
+              {
+                // Stripe livre les webhooks au moins une fois, parfois en parallèle :
+                // deux account.updated concurrents lisent les mêmes payouts
+                // awaiting_onboarding avant que l'un des deux ait écrit "pending".
+                // La clé d'idempotence (par challenge + créateur, pas par row payout)
+                // garantit qu'un seul Transfer réel est créé, Stripe renvoyant le
+                // même objet au second appel.
+                idempotencyKey: `payout-transfer-${payout.challenge_id}-${payout.creator_id}`,
+              },
+            );
 
-          // Conditionné sur awaiting_onboarding : si le webhook transfer.created
-          // est arrivé entre-temps et a déjà marqué le payout "paid", on ne le
-          // rétrograde pas en "pending".
-          await supabase
-            .from("payouts")
-            .update({ status: "pending", stripe_transfer_id: transfer.id })
-            .eq("id", payout.id)
-            .eq("status", "awaiting_onboarding");
+            // Conditionné sur awaiting_onboarding : si le webhook transfer.created
+            // est arrivé entre-temps et a déjà marqué le payout "paid", on ne le
+            // rétrograde pas en "pending".
+            await supabase
+              .from("payouts")
+              .update({ status: "pending", stripe_transfer_id: transfer.id })
+              .eq("id", payout.id)
+              .eq("status", "awaiting_onboarding");
+          } catch (error) {
+            // Pas de try/catch à l'origine (Bloc 11) : une exception faisait
+            // échouer le webhook (500), Stripe retentant automatiquement — chaque
+            // retry relit les payouts awaiting_onboarding, donc un retry ne
+            // retente que ceux encore non résolus (idempotent par construction).
+            // On garde ce comportement (rethrow après notification) : Natan est
+            // alerté immédiatement au lieu de découvrir l'échec après plusieurs
+            // retries silencieux dans les logs Vercel.
+            await notifyAdmin(
+              "Transfer Stripe échoué (reprise account.updated)",
+              `Le Transfer de reprise pour le payout ${payout.id} (créateur ${creatorProfile.id}) a échoué : ${error instanceof Error ? error.message : String(error)}`,
+            );
+            throw error;
+          }
         }
       }
     }
@@ -134,7 +150,14 @@ export async function POST(request: Request) {
     query = transfer.metadata?.payout_id
       ? query.eq("id", transfer.metadata.payout_id)
       : query.eq("stripe_transfer_id", transfer.id);
-    await query;
+    const { data: updated } = await query.select("id");
+
+    if (newStatus === "failed" && updated && updated.length > 0) {
+      await notifyAdmin(
+        "Transfer Stripe échoué (webhook transfer.failed)",
+        `Le Transfer ${transfer.id} (metadata payout_id=${transfer.metadata?.payout_id ?? "inconnu"}) est passé en échec après création.`,
+      );
+    }
   }
 
   return NextResponse.json({ received: true });

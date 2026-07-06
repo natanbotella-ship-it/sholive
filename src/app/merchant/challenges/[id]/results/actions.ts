@@ -8,6 +8,7 @@ import { rankSubmissionsByMetricScore } from "@/lib/scoring";
 import { levelForXp } from "@/lib/xp";
 import { computePayoutShares } from "@/lib/payouts";
 import { centsToEuros } from "@/lib/money";
+import { notifyAdmin } from "@/lib/notify-admin";
 
 export type FinalizeResultsState = {
   error?: string;
@@ -91,11 +92,20 @@ export async function finalizeChallengeResultsAction(
     // Conditionné sur active/voting : une requête concurrente qui aurait déjà
     // fait la transition ne doit pas être écrasée (le décompte étant le même,
     // l'issue est identique — refunded dans les deux cas).
-    await admin
+    const { data: justRefunded } = await admin
       .from("challenges")
       .update({ status: "refunded" })
       .eq("id", challengeId)
-      .in("status", ["active", "voting"]);
+      .in("status", ["active", "voting"])
+      .select("id");
+    if (justRefunded && justRefunded.length > 0) {
+      // Remboursement intégral manuel (commission incluse) : le seul déclencheur
+      // est Natan (CLAUDE.md), donc il doit être notifié que ce challenge l'attend.
+      await notifyAdmin(
+        "Challenge à rembourser (< 10 soumissions)",
+        `Le challenge ${challengeId} est passé "refunded" (moins de ${MIN_SUBMISSIONS} soumissions à submission_deadline). Remboursement intégral (commission incluse) à déclencher manuellement.`,
+      );
+    }
     return { refunded: true };
   }
 
@@ -309,7 +319,7 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
           .update({ status: "pending", stripe_transfer_id: transfer.id })
           .eq("id", payout.id)
           .eq("status", "awaiting_onboarding");
-      } catch {
+      } catch (error) {
         // L'appel de creation du Transfer a echoue de facon synchrone (pas un
         // transfer.failed webhook apres coup) : le compte est deja "complete", donc
         // rien ne redeclenchera automatiquement une nouvelle tentative (le webhook
@@ -319,11 +329,19 @@ async function createPayoutsForChallenge(challengeId: string): Promise<void> {
         // plus jamais repris). Conditionne sur awaiting_onboarding : si un appel
         // concurrent a deja cree le Transfer (conflit de cle d'idempotence Stripe
         // levant une exception ici), on n'ecrase pas son "pending"/"paid".
-        await admin
+        const { data: markedFailed } = await admin
           .from("payouts")
           .update({ status: "failed" })
           .eq("id", payout.id)
-          .eq("status", "awaiting_onboarding");
+          .eq("status", "awaiting_onboarding")
+          .select("id");
+
+        if (markedFailed && markedFailed.length > 0) {
+          await notifyAdmin(
+            "Transfer Stripe échoué (payout)",
+            `Le Transfer pour le payout ${payout.id} (challenge ${challengeId}, créateur ${share.creatorId}, ${centsToEuros(share.cents)}€) a échoué : ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
       }
     }
   }

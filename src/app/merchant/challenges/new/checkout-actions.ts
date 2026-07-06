@@ -68,7 +68,8 @@ export async function createCheckoutSessionAction(
       cancel_url: `${siteUrl}/merchant/dashboard?checkout=cancelled`,
       metadata: { challenge_id: challenge.id },
     });
-  } catch {
+  } catch (err) {
+    console.error("Erreur création Stripe Checkout Session :", err);
     return { error: "Impossible de créer la session de paiement Stripe" };
   }
 

@@ -107,17 +107,35 @@ export async function POST(request: Request) {
       if (newStatus === "complete") {
         const { data: pendingPayouts } = await supabase
           .from("payouts")
-          .select("id, amount, challenge_id, creator_id")
+          .select(
+            "id, amount, challenge_id, creator_id, challenges!inner(stripe_payment_intent_id)",
+          )
           .eq("creator_id", creatorProfile.id)
           .eq("status", "awaiting_onboarding");
 
         for (const payout of pendingPayouts ?? []) {
           try {
+            // source_transaction attend l'ID d'un Charge (ch_...), jamais celui d'un
+            // PaymentIntent (pi_...) — même bug que le cron de sweep, trouvé au même
+            // endroit le 2026-07-06 : ce chemin de reprise n'utilisait même pas
+            // source_transaction du tout avant ce fix (toujours prélevé sur la balance
+            // globale), contrairement à l'intention de CLAUDE.md.
+            const paymentIntentId = payout.challenges.stripe_payment_intent_id;
+            let sourceCharge: string | undefined;
+            if (paymentIntentId) {
+              const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+              sourceCharge =
+                typeof paymentIntent.latest_charge === "string"
+                  ? paymentIntent.latest_charge
+                  : paymentIntent.latest_charge?.id;
+            }
+
             const transfer = await stripe.transfers.create(
               {
                 amount: eurosToCents(Number(payout.amount)),
                 currency: "eur",
                 destination: account.id,
+                ...(sourceCharge ? { source_transaction: sourceCharge } : {}),
                 // Permet aux webhooks transfer.created/transfer.failed de retrouver
                 // le payout même si l'update ci-dessous n'a pas encore été écrit.
                 metadata: { payout_id: payout.id },

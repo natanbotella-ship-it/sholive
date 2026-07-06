@@ -2,6 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateFr } from "@/lib/format-date";
 
+// Liste des challenges (refonte Nuit des Lumières 2026-07-07) — pattern liste
+// scannable façon livraison : chips de filtre en liens GET (mêmes searchParams,
+// plus de bouton "Filtrer" à comprendre), grille de cartes cohérentes avec la
+// landing, cagnotte dorée en premier. Requête Supabase inchangée.
 export default async function ChallengesPage({
   searchParams,
 }: {
@@ -24,52 +28,73 @@ export default async function ChallengesPage({
   }
 
   const { data: challenges } = await query;
+  const count = challenges?.length ?? 0;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary-ink">Challenges actifs</h1>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-10 sm:px-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          Challenges ouverts
+        </h1>
+        <p className="text-sm text-muted">
+          {count === 0
+            ? "Choisis un challenge, filme, et remporte ta part de la cagnotte."
+            : `${count} challenge${count > 1 ? "s" : ""} en cours — choisis, filme, remporte ta part de la cagnotte.`}
+        </p>
+      </div>
 
-      <form className="flex gap-2 text-sm">
-        <select
-          name="city"
-          defaultValue={city ?? ""}
-          className="input"
+      {/* Filtres en chips-liens : un tap, zéro bouton à comprendre */}
+      <nav aria-label="Filtrer par ville" className="flex flex-wrap gap-2">
+        <Link
+          href="/challenges"
+          aria-current={!city ? "page" : undefined}
+          className={`chip ${!city ? "chip-active" : ""}`}
         >
-          <option value="">Toutes les villes</option>
-          <option value="Lyon">Lyon</option>
-        </select>
-        <button type="submit" className="btn-outline btn-sm">
-          Filtrer
-        </button>
-      </form>
+          Toutes les villes
+        </Link>
+        <Link
+          href="/challenges?city=Lyon"
+          aria-current={city === "Lyon" ? "page" : undefined}
+          className={`chip ${city === "Lyon" ? "chip-active" : ""}`}
+        >
+          Lyon
+        </Link>
+      </nav>
 
       {!challenges || challenges.length === 0 ? (
-        <p className="text-sm text-muted">
-          Aucun challenge actif pour le moment.
-        </p>
+        <div className="card flex flex-col items-start gap-3 p-6">
+          <p className="font-semibold">Aucun challenge ouvert pour le moment.</p>
+          <p className="text-sm text-muted">
+            Les commerces lyonnais préparent leurs prochains challenges. Crée
+            ton compte créateur pour être prêt dès l&apos;ouverture.
+          </p>
+          <Link href="/register?role=creator" className="btn-primary">
+            Créer mon compte créateur
+          </Link>
+        </div>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {challenges.map((challenge) => (
-            <li
-              key={challenge.id}
-              className="flex flex-col gap-1 card"
-            >
+            <li key={challenge.id}>
               <Link
                 href={`/challenges/${challenge.id}`}
-                className="link font-semibold"
+                className="card card-hover flex h-full flex-col gap-3"
               >
-                {challenge.title}
+                <span className="inline-flex w-fit items-center gap-1 rounded-full bg-accent-soft px-3 py-1 text-sm font-bold text-accent-ink">
+                  {challenge.prize_pool} € de cagnotte
+                </span>
+                <span className="font-display text-lg font-bold leading-snug">
+                  {challenge.title}
+                </span>
+                <span className="text-sm text-muted">
+                  {challenge.merchant_profiles.business_name} ·{" "}
+                  {challenge.merchant_profiles.city}
+                </span>
+                <span className="mt-auto pt-1 text-xs font-medium text-muted">
+                  Vidéos acceptées jusqu&apos;au{" "}
+                  {formatDateFr(challenge.submission_deadline)}
+                </span>
               </Link>
-              <span className="text-sm text-muted">
-                {challenge.merchant_profiles.business_name} —{" "}
-                {challenge.merchant_profiles.city}
-              </span>
-              <span className="text-sm">
-                Prize pool : {challenge.prize_pool}€
-              </span>
-              <span className="text-sm text-muted">
-                Deadline : {formatDateFr(challenge.submission_deadline)}
-              </span>
             </li>
           ))}
         </ul>

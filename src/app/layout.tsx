@@ -105,6 +105,12 @@ export default async function RootLayout({
                   Challenges
                 </Link>
                 <Link
+                  href="/comment-ca-marche"
+                  className="transition-colors hover:text-foreground"
+                >
+                  Comment ça marche
+                </Link>
+                <Link
                   href="/login"
                   className="transition-colors hover:text-foreground"
                 >

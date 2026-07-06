@@ -105,7 +105,7 @@ export default async function MerchantChallengeResultsPage({
   const { data: submissions } = await supabase
     .from("submissions")
     .select(
-      "id, rank, metric_score, merchant_score, total_score, tiktok_url, reels_url, shorts_url, creator_profiles!inner(username)",
+      "id, rank, metric_score, merchant_score, total_score, declared_views, declared_saves, declared_likes, declared_shares, tiktok_url, reels_url, shorts_url, creator_profiles!inner(username)",
     )
     .eq("challenge_id", challenge.id)
     .order("rank", { ascending: true });
@@ -124,7 +124,12 @@ export default async function MerchantChallengeResultsPage({
       </h1>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">Classement final</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Classement final</h2>
+          <Link href="/comment-ca-marche#scoring" className="link text-sm">
+            Comment le score est calculé ?
+          </Link>
+        </div>
         <ul className="flex flex-col gap-2">
           {(submissions ?? []).map((submission) => (
             <li
@@ -133,6 +138,11 @@ export default async function MerchantChallengeResultsPage({
             >
               <span className="font-semibold">
                 #{submission.rank} @{submission.creator_profiles.username}
+              </span>
+              <span className="text-muted">
+                {submission.declared_views} vues · {submission.declared_saves}{" "}
+                saves · {submission.declared_likes} likes ·{" "}
+                {submission.declared_shares} partages
               </span>
               <span className="text-muted">
                 Score métriques {Number(submission.metric_score).toFixed(1)}

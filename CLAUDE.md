@@ -14,7 +14,7 @@ Marketplace de compétition vidéo locale, nom : **Sholive**. Lancement exclusif
 - Backend : Next.js API Routes + Server Actions
 - Supabase (PostgreSQL + Auth email/password + Storage avatars)
 - Stripe (Checkout pour la collecte, Connect Express pour les payouts créateurs)
-- Vercel (hébergement)
+- Vercel (hébergement) — dépôt GitHub `natanbotella-ship-it/sholive`, projet Vercel "sholive" (connecté depuis le 2026-07-06). **Production suit la branche `main`**, toute autre branche (dont `review/bugfixes-and-design`) déploie automatiquement en Preview à chaque push — ne jamais pousser directement sur `main`, toujours merger volontairement quand une branche est validée en Preview. Le cron (`vercel.json`, `src/app/api/cron/sholive-scheduler`) ne se déclenche que sur les déploiements Production, jamais sur les Preview
 - Tailwind CSS — identité « terracotta & sapin » (depuis le 2026-07-05, remplace le violet #7C3AED) : primaire terracotta `#A63A1C`, accent vert sapin `#205C43`, fond crème `#FAF5EC`, police Inter. Les tokens (modes clair + sombre, contrastes AA vérifiés) vivent dans `src/app/globals.css` + `tailwind.config.ts` ; utiliser les classes composant de `globals.css` (`btn-primary`, `btn-outline`, `card`, `input`, `badge`, `link`, `alert-error`) plutôt que des chaînes utilitaires ad hoc
 - Interface 100% français, aucun texte en anglais visible utilisateur
 

@@ -82,18 +82,32 @@ export async function GET(request: Request) {
 
     if (creator.stripe_onboarding_status === "complete" && creator.stripe_account_id) {
       try {
+        // source_transaction attend l'ID d'un Charge (ch_...), jamais celui d'un
+        // PaymentIntent (pi_...) — trouvé en E2E réel le 2026-07-06 : Stripe rejetait
+        // systématiquement avec "No such charge" quand on passait directement
+        // challenges.stripe_payment_intent_id. Le PaymentIntent expose latest_charge,
+        // qu'il faut donc récupérer avant de créer le Transfer.
+        let sourceCharge: string | undefined;
+        if (challenge.stripe_payment_intent_id) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(
+            challenge.stripe_payment_intent_id,
+          );
+          sourceCharge =
+            typeof paymentIntent.latest_charge === "string"
+              ? paymentIntent.latest_charge
+              : paymentIntent.latest_charge?.id;
+        }
+
         const transfer = await stripe.transfers.create(
           {
             amount: eurosToCents(Number(payout.amount)),
             currency: "eur",
             destination: creator.stripe_account_id,
             // Adosse le Transfer au paiement de CE challenge plutôt qu'à la balance
-            // disponible globale (pre-mortem 2026-07-06) ; omis si absent (challenge
-            // payé avant l'introduction de cette colonne) — Stripe retombe alors sur
-            // le prélèvement classique sur la balance.
-            ...(challenge.stripe_payment_intent_id
-              ? { source_transaction: challenge.stripe_payment_intent_id }
-              : {}),
+            // disponible globale (pre-mortem 2026-07-06) ; omis si absent (charge
+            // introuvable, ou challenge payé avant l'introduction de cette colonne)
+            // — Stripe retombe alors sur le prélèvement classique sur la balance.
+            ...(sourceCharge ? { source_transaction: sourceCharge } : {}),
             metadata: { payout_id: payout.id },
           },
           {

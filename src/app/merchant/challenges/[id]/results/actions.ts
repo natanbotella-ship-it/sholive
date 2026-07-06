@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser } from "@/lib/auth";
@@ -319,17 +320,25 @@ export async function viewResultsAction(
   formData: FormData,
 ): Promise<ViewResultsState> {
   const finalizeResult = await finalizeChallengeResultsAction(prevState, formData);
+  const challengeId = formData.get("challengeId");
 
-  if (finalizeResult.error || finalizeResult.refunded) {
+  if (finalizeResult.error) {
     return finalizeResult;
   }
 
-  const challengeId = formData.get("challengeId");
   if (typeof challengeId === "string" && challengeId) {
-    await createPayoutsForChallenge(challengeId);
+    if (!finalizeResult.refunded) {
+      await createPayoutsForChallenge(challengeId);
+    }
+    // Sans ça, la page reste affichée avec les données d'avant l'action (useFormState
+    // ne rafraîchit que le composant client, jamais le Server Component parent) : le
+    // pro voit toujours "tu peux finaliser" après avoir cliqué, alors que la finalisation
+    // et les payouts ont bien été créés en base — trouvé pendant l'E2E réel (2026-07-06),
+    // jamais vu par les tests par simulation des Blocs 13/14/15 qui ne rejouent pas le rendu.
+    revalidatePath(`/merchant/challenges/${challengeId}/results`);
   }
 
-  return { finalized: true };
+  return finalizeResult.refunded ? finalizeResult : { finalized: true };
 }
 
 export type ReportDisputeState = {
@@ -397,6 +406,8 @@ export async function reportResultsDisputeAction(
     "Signalement de fraude sur un classement",
     `Le pro a signalé un problème sur le classement du challenge ${challengeId}. Les payouts en attente (statut awaiting_review) sont bloqués jusqu'à résolution manuelle.`,
   );
+
+  revalidatePath(`/merchant/challenges/${challengeId}/results`);
 
   return { success: true };
 }

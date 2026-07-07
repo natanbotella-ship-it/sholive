@@ -11,12 +11,8 @@ const initialState: ConnectAccountState = {};
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="btn-primary"
-    >
-      {pending ? "Redirection..." : "Activer mes paiements"}
+    <button type="submit" disabled={pending} className="btn-accent w-full">
+      {pending ? "Redirection vers Stripe..." : "Activer mes paiements"}
     </button>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
@@ -19,12 +20,29 @@ export default async function CreatorProfilePage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-2xl font-bold text-primary-ink">Mon profil</h1>
-      <ProfileForm
-        currentUsername={creatorProfile.username}
-        currentAvatarUrl={creatorProfile.avatar_url}
-      />
+    <main className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="card flex flex-col gap-6 p-6 sm:p-8">
+          <div className="flex flex-col gap-1">
+            <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              Mon profil
+            </h1>
+            <p className="text-sm text-muted">
+              Ton nom et ton avatar apparaissent sur les classements et ta page
+              publique.
+            </p>
+          </div>
+          <ProfileForm
+            currentUsername={creatorProfile.username}
+            currentAvatarUrl={creatorProfile.avatar_url}
+          />
+        </div>
+        <p className="mt-4 text-center text-sm text-muted">
+          <Link href="/creator/dashboard" className="link">
+            Retour à mon espace
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }

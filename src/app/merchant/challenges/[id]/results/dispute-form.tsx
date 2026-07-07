@@ -8,7 +8,11 @@ const initialState: ReportDisputeState = {};
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-outline btn-sm">
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex w-fit items-center justify-center gap-2 rounded-xl border border-danger/40 px-3 py-1.5 text-sm font-semibold text-danger transition hover:bg-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger disabled:pointer-events-none disabled:opacity-50"
+    >
       {pending ? "Envoi..." : "Signaler un problème sur ce classement"}
     </button>
   );
